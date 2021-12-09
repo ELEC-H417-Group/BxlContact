@@ -14,20 +14,19 @@ server.onopen = function(){
     button.disable = false
 }
 
-server.onmessage = function(event) {
-    const { data } = event
-    generateMessageEntry(data, 'Server')
+server.onmessage = function(msg) {
+    generateMessageEntry(msg.data, 'Server')
 }
 
 function generateMessageEntry(msg, type){
     const newMessage = document.createElement('div')
     newMessage.innerText = `${type} says: ${msg}`
     message.appendChild(newMessage)
-
 } 
-
+ 
 function sendMessage(){
-     const text = input.value
-     generateMessageEntry(text, 'Client')
-     server.send(text)
+     const msg = input.value
+     generateMessageEntry(msg, 'Client')
+     console.log(msg)
+     server.send(msg)
 }

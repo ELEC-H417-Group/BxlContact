@@ -8,25 +8,26 @@ app.use('/',express.static(path.resolve(__dirname,'.../client')))
 const server = app.listen(9876)
 
 const wss = new WebSocket.Server({
-    noServer: true,
-    verifyClient: (info) => {
-        return true
-    }
-
+    server
 })
 
-
-wss.on('connection', function(ws){
-    ws.on('message', function(data){
-        wss.clients.forEach(function each(client) { 
+wss.on('connection', function connection(ws) {
+  ws.on('message', function message(data) {
+    wss.clients.forEach(function each(client) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(data.toString())
+      }
+    })
+  })
+})
+/*
+  wss.clients.forEach(function each(client) { 
             if (client.readyState === WebSocket.OPEN) {
-              client.send(data.toString());
+              client.send(data);
             }
           })
-    })
-}) 
-
-
+*/
+/*
 server.on('upgrade', async function upgrade(request, socket, head) {
     // Do what you normally do in `verifyClient()` here and then use
     // `WebSocketServer.prototype.handleUpgrade()`.
@@ -42,4 +43,4 @@ server.on('upgrade', async function upgrade(request, socket, head) {
     wss.handleUpgrade(request, socket, head, function done(ws) {
       wss.emit('connection', ws, request, ...args);
     })
-  })
+  })*/
