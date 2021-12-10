@@ -23,20 +23,20 @@
     socket.onmessage = function(event) {
         try{
             console.debug("Message WebSocket reçu :", event);
-        console.log('wath???')
-        var data = JSON.parse(event.data)
-        console.log('shhshshshsh')
-        switch (data.type){
-            case 'signin':
-                if(data.resp == 'true'){
-                    console.log('wath???')
-                    console.debug('quoi?')
-                    //window.location.href = 'test.html'
-                }
-                break
-            default:
-                console.log(`Wrong expression`)
-        }
+            console.log('wath???')
+            var data = JSON.parse(event.data)
+            console.log('shhshshshsh')
+            switch (data.type){
+                case 'signin':
+                  if(data.resp == 'true'){
+                      console.log('wath???')
+                    window.location.href = 'test.html'
+                    }
+                    break
+                case 'signout':
+                default:
+                    console.log(`Wrong expression`)
+         }
         }
         catch(error){
             console.log(error)
