@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "e": "^0.2.1",
+    "install": "^0.13.0",
+    "serve-favicon": "^2.5.0",
     "ws": "^8.3.0",
     "xpress": "^2.4.6"
   }
