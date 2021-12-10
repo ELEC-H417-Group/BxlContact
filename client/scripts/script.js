@@ -2,6 +2,11 @@
     serverUrl = 'ws://localhost:9876/server'
     const websocket = new WebSocket(serverUrl)
 
+    //Global variable
+    var mainUser = {
+        userId: "",
+        userName: ""
+    }
     
     const userName = document.getElementById('username')
     const password = document.getElementById('password')
@@ -12,7 +17,7 @@
     //on websocket open
     websocket.onopen = function(event) {
        
-    };
+    }; 
 
     //on message receive
     websocket.onmessage = function(event) {
@@ -21,6 +26,9 @@
             switch (data.type){
                 case 'signin':
                   if(data.resp == 'true'){
+                        mainUser.userId = data.userId
+                        mainUser.userName = data.userName
+                        localStorage.setItem('mainUser',mainUser)
                         window.location.href = 'chatroom.html'
                     }
                     break
@@ -51,4 +59,6 @@
         }
         websocket.send(JSON.stringify(cred))
     }
+
+  //exports.mainUser = mainUser
     

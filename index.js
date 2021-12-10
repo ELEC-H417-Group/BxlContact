@@ -17,18 +17,17 @@ const wss = new WebSocket.Server({
   server
 })
 
+// HashMap: {key: userId, value: [ws, userName]}
 const usersId = new Map()
 
 wss.on('connection', function connection(ws) {
-  //var userId = genereteUserId()
-  var userId = 1
-  usersId.set(userId,ws)
+  var userId = genereteUserId()
 
   ws.on('message', function message(msg) {
     wss.clients.forEach(function each(client) {
       if (client == ws && client.readyState === WebSocket.OPEN) {
         var data = JSON.parse(msg)
-        check(data, client) 
+        check(client, data, userId) 
       }
     })
   })
@@ -43,11 +42,19 @@ function genereteUserId(){
   return userId
 }
 
-function check(data, client){
+function check(client, data, userId){
   switch (data.type){
     case 'signin':
-      var cred = checkCredential(data.username,data.password)
+      var cred = checkCredential(data.username,data.password, userId)
+      usersId.set(userId,[ws, data.userName])
       client.send(JSON.stringify(cred))
+      break
+    case 'users':
+      var data = {
+        type: 'users',
+        users: usersId
+      }
+      client.send(JSON.stringify(data))
       break
     case 'message':
       var ws = usersId.get(data.userId)
@@ -69,14 +76,27 @@ function checkCredential(userName, password, userId){
   cred = {
     type: 'signin',
     resp: 'false',
-    userId: userId
+    userId: userId,
+    userName:userName
   }
   
   if (userName == "" && password == ""){
       cred.resp = 'true'
-      console.log('works')
   }
   return cred
+}
+
+function broadcast(userId, userName){
+  usersId.forEach((key, value) => {
+    if(key != userId){
+        data = {
+          type :'newUser',
+          userName: userName,
+          userId:userId
+        }
+        value[0].send(JSON.stringify())
+    }
+  })
 }
 /*
   wss.clients.forEach(function each(client) { 

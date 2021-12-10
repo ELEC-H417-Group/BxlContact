@@ -7,13 +7,27 @@
     <meta http-equivox="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
 </head>
+<style>
+    .leftside{
+        float:left;
+    }
+    .rightside {
+        float:right;
+    }
+</style>
 <body>
-    <div id="chat">
-		<div id="chat-messages"> </div>
+    <div class="leftside" id="chat">
+        <div id="contact"> No Contact </div>
+		<div id="chat-message"> </div>
 		<input id="message"/>
 		<button id="send">Send Messages</button>
 	</div>
     <script src="./scripts/chat.js"></script>
+
+    <div class="rightside" id="contact">
+        <div id="contact"> </div>
+
+    </div>
     
 </body>
 
