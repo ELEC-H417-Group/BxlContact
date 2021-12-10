@@ -2,10 +2,14 @@ const WebSocket = require('ws')
 const express = require('express')
 const app = express()
 const path = require('path')
+// Create Http Server
+const httpServer = require('http').createServer(app)
 
 app.use('/',express.static(path.resolve(__dirname,'./client')))
 
 const server = app.listen(9876)
+// http://localhost:80 or http://localhost
+httpServer.listen(process.env.PORT || 80)
 
 const wss = new WebSocket.Server({
     server
