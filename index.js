@@ -9,7 +9,7 @@ app.use('/',express.static(path.resolve(__dirname,'./client')))
 
 const server = app.listen(9876)
 // http://localhost:80 or http://localhost
-httpServer.listen(process.env.PORT || 80)
+httpServer.listen(process.env.PORT || 5500)
 
 const wss = new WebSocket.Server({
   server
