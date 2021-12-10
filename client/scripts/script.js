@@ -28,17 +28,7 @@
             console.log('shhshshshsh')
             switch (data.type){
                 case 'signin':
-<<<<<<< HEAD
-                  if(data.resp == 'true'){
-                      console.log('wath???')
-                    window.location.href = 'test.html'
-                    }
-                    break
-                case 'signout':
-                default:
-                    console.log(`Wrong expression`)
-         }
-=======
+
                     if(data.resp == 'true'){
                         console.log('wath???')
                         console.debug('quoi?')
@@ -48,7 +38,6 @@
                 default:
                     console.log(`Wrong expression`)
             }
->>>>>>> nico
         }
         catch(error){
             console.log(error)
