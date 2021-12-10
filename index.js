@@ -20,19 +20,23 @@ wss.on('connection', function connection(ws) {
     wss.clients.forEach(function each(client) {
       if (client == ws && client.readyState === WebSocket.OPEN) {
         var data = JSON.parse(msg)
-        switch (data.type){
-          case 'signin':
-            var cred = checkCredential(data.email,data.password)
-            client.send(JSON.stringify(cred))
-            break
-
-          default:
-            console.log(`Wrong expression`)
-        }
+        check(data, client) 
       }
     })
   })
 })
+
+function check(data, client){
+  switch (data.type){
+    case 'signin':
+      var cred = checkCredential(data.email,data.password)
+      client.send(JSON.stringify(cred))
+      break
+  
+    default:
+      console.log(`Wrong expression`)
+  }
+}
 
 /*
 wss.on('connection', function connection(ws) {
