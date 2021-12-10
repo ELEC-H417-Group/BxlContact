@@ -12,39 +12,56 @@ const wss = new WebSocket.Server({
   server
 })
 
- 
-
 wss.on('connection', function connection(ws) {
-
   ws.on('message', function message(msg) {
-    if (ws.readyState === WebSocket.OPEN){
+    wss.clients.forEach(function each(client) {
+      if (client == ws && client.readyState === WebSocket.OPEN) {
+        var data = JSON.parse(msg)
+        switch (data.type){
+          case 'signin':
+            var cred = checkCredential(data.email,data.password)
+            client.send(JSON.stringify(cred))
+            break
+
+          default:
+            console.log(`Wrong expression`)
+        }
+      }
+    })
+  })
+})
+
+/*
+wss.on('connection', function connection(ws) {
+  ws.on('message', function message(msg) {
+    ws.send('fsfsfs')
+    if (ws.readyState == WebSocket.OPEN){
       var data = JSON.parse(msg)
       switch (data.type){
         case 'signin':
-          checkCredential(ws,data.email,data.password)
-
+          var cred = checkCredential(data.email,data.password)
+          ws.send(JSON.stringify(cred))
           break
+
         default:
           console.log(`Wrong expression`)
       }
     }
     
   })
-})
+})*/
 
-function checkCredential(ws, email, password){
+function checkCredential(email, password){
   cred = {
     type: 'signin',
     resp: 'false'
   }
+  
   if (email == "" && password == ""){
       cred.resp = 'true'
       console.log('works')
-      ws.send(JSON.stringify(cred))
   }
-  else{
-    ws.send(JSON.stringify(cred))
-  }
+  return cred
 }
 /*
   wss.clients.forEach(function each(client) { 
