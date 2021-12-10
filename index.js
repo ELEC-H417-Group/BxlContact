@@ -2,6 +2,8 @@ const WebSocket = require('ws')
 const express = require('express')
 const app = express()
 const path = require('path')
+const { send } = require('process')
+const { Console } = require('console')
 // Create Http Server
 const httpServer = require('http').createServer(app)
 
@@ -15,7 +17,13 @@ const wss = new WebSocket.Server({
   server
 })
 
+const usersId = new Map()
+
 wss.on('connection', function connection(ws) {
+  //var userId = genereteUserId()
+  var userId = 1
+  usersId.set(userId,ws)
+
   ws.on('message', function message(msg) {
     wss.clients.forEach(function each(client) {
       if (client == ws && client.readyState === WebSocket.OPEN) {
@@ -26,11 +34,29 @@ wss.on('connection', function connection(ws) {
   })
 })
 
+function genereteUserId(){
+  //Math.floor(Math.random() * 100)
+  var userId = Date.now() % 1000
+  while (usersId.has(userId)){
+    userId = Date.now() % 1000
+  }
+  return userId
+}
+
 function check(data, client){
   switch (data.type){
     case 'signin':
-      var cred = checkCredential(data.email,data.password)
+      var cred = checkCredential(data.username,data.password)
       client.send(JSON.stringify(cred))
+      break
+    case 'message':
+      var ws = usersId.get(data.userId)
+      if (ws == undefined){
+        console.log('userid undefined')
+      }
+      else{
+        ws.send(JSON.stringify(data))
+      }
       break
   
     default:
@@ -38,33 +64,15 @@ function check(data, client){
   }
 }
 
-/*
-wss.on('connection', function connection(ws) {
-  ws.on('message', function message(msg) {
-    ws.send('fsfsfs')
-    if (ws.readyState == WebSocket.OPEN){
-      var data = JSON.parse(msg)
-      switch (data.type){
-        case 'signin':
-          var cred = checkCredential(data.email,data.password)
-          ws.send(JSON.stringify(cred))
-          break
 
-        default:
-          console.log(`Wrong expression`)
-      }
-    }
-    
-  })
-})*/
-
-function checkCredential(email, password){
+function checkCredential(userName, password, userId){
   cred = {
     type: 'signin',
-    resp: 'false'
+    resp: 'false',
+    userId: userId
   }
   
-  if (email == "" && password == ""){
+  if (userName == "" && password == ""){
       cred.resp = 'true'
       console.log('works')
   }
@@ -94,3 +102,22 @@ server.on('upgrade', async function upgrade(request, socket, head) {
       wss.emit('connection', ws, request, ...args);
     })
   })*/
+  /*
+wss.on('connection', function connection(ws) {
+  ws.on('message', function message(msg) {
+    ws.send('fsfsfs')
+    if (ws.readyState == WebSocket.OPEN){
+      var data = JSON.parse(msg)
+      switch (data.type){
+        case 'signin':
+          var cred = checkCredential(data.email,data.password)
+          ws.send(JSON.stringify(cred))
+          break
+
+        default:
+          console.log(`Wrong expression`)
+      }
+    }
+    
+  })
+})*/

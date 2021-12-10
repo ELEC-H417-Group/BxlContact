@@ -1,36 +1,27 @@
 
     serverUrl = 'ws://localhost:9876/server'
-    const socket = new WebSocket(serverUrl)
+    const websocket = new WebSocket(serverUrl)
+
     
-    //socket.addEventListener('open', openConnection);
-    //socket.addEventListener('close', closeConnection);
-    //socket.addEventListener('message', readIncomingMessage);
-    
-    const email = document.getElementById('email')
+    const userName = document.getElementById('username')
     const password = document.getElementById('password')
     const button = document.getElementById('signin')
     
-    /*
-    we have to use JSON.stringify to write and json.parse to read it.
-    const message = document.getElementById('messages')
-    const input = document.getElementById('message')
-    const button = document.getElementById('send')*/
-    
     button.addEventListener('click',signIn,false)
     
-    
-    
-    socket.onmessage = function(event) {
+    //on websocket open
+    websocket.onopen = function(event) {
+       
+    };
+
+    //on message receive
+    websocket.onmessage = function(event) {
         try{
-            console.debug("Message WebSocket reçu :", event);
-            console.log('wath???')
             var data = JSON.parse(event.data)
-            console.log('shhshshshsh')
             switch (data.type){
                 case 'signin':
                   if(data.resp == 'true'){
-                      console.log('wath???')
-                    window.location.href = 'test.html'
+                        window.location.href = 'chatroom.html'
                     }
                     break
                 case 'signout':
@@ -43,27 +34,21 @@
         }
         
     } 
-    
+
+    //on websocket close
+    websocket.onclose = function(event) {
+    };
+
+    //on websocket error
+    websocket.onerror = function(event) {
+    };
     
     function signIn(){
         cred = {
             type: 'signin',
-            email: email.value,
+            username: userName.value,
             password: password.value
         }
-        socket.send(JSON.stringify(cred))
+        websocket.send(JSON.stringify(cred))
     }
     
-    
-    function generateMessageEntry(msg, type){
-        const newMessage = document.createElement('div')
-        newMessage.innerText = `${type} says: ${msg}`
-        message.appendChild(newMessage)
-    } 
-    function sendMessage(){
-         const msg = input.value
-         generateMessageEntry(msg, 'Client')
-         console.log(msg)
-         server.send(msg)
-    }   
-
