@@ -42,6 +42,7 @@ websocket.onmessage = function(event) {
                 mainUser.userId = data.userId
                 sendTo_ = data.userId
                 var users = JSON.parse(data.users, reviver);
+                userButton(mainUser.userId,mainUser.userName)
                 addContacts(users)
                 addContact(mainUser.userId,mainUser.userName)
                 break
