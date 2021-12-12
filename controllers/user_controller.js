@@ -19,9 +19,6 @@ exports.doLog = function(req, res) {
     var username = req.body.username;
     var password = req.body.password;
 
-    req.body = {
-        username: username
-    }
     // check data in database
-    res.render('user/chatroom')
+    res.render('user/chatroom', {text: username})
 }

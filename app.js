@@ -42,30 +42,44 @@ function genereteUserId(){
 function check(client, data, userId){
   switch (data.type){
     case 'users':
-      var data = {
-        type: 'users',
-        userId:userId,
-        users: usersId
-
-      }
-      client.send(JSON.stringify(data))
-      break
+        usersId.set(userId,[client, data.userName])
+        var data = {
+            type: 'users',
+            userId:userId,
+            users: JSON.stringify(usersId,replacer)
+        }
+        client.send(JSON.stringify(data))
+        break
     case 'message':
-      var ws = usersId.get(data.userId)
-      if (ws == undefined){
-        console.log('userid undefined')
-      }
-      else{
-        ws.send(JSON.stringify(data))
-      }
-      break
-  
+        console.log(usersId)
+        console.log(data.userId)
+        var ws = usersId.get(data.userId)
+        console.log(ws)
+        if (ws[0] == undefined){
+            console.log('userid undefined')
+        }
+        else{
+            ws[0].send(JSON.stringify(data))
+        }
+        break
     default:
       console.log(`Wrong expression`)
   }
 }
 
+//map to object
+function replacer(key, value) {
+    if(value instanceof Map) {
+      return {
+        dataType: 'Map',
+        value: Array.from(value.entries()), // or with spread: value: [...value]
+      };
+    } else {
+      return value;
+    }
+  }
 
+/*
 function checkCredential(userName, password, userId){
   cred = {
     type: 'signin',
@@ -78,7 +92,7 @@ function checkCredential(userName, password, userId){
       cred.resp = 'true'
   }
   return cred
-}
+}*/
 
 function broadcast(userId, userName){
   usersId.forEach((key, value) => {

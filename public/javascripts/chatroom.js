@@ -5,18 +5,17 @@ const websocket = new WebSocket(serverUrl)
 
 const inputMessage = document.getElementById('message')
 const sendButton = document.getElementById('send')
-const contact = document.getElementById('contact')
+const dest = document.getElementById('dest')
 //contact.innerHTML = mainUser.userName
 
 
-
 var mainUser = {
-    username: req.body,
-    userId:undefined
+    userName: dest.getAttribute('data-value'),
+    userId: undefined
 }
 
 //send to me by default
-var sendTo = mainUser.userId
+var sendTo_ = ""
 
     
 sendButton.addEventListener('click',sendEvent, false);
@@ -24,10 +23,9 @@ sendButton.addEventListener('click',sendEvent, false);
 //on websocket open
 websocket.onopen = function() {
 
-    mainUser.username = user.mainUser.username
     data = {
         type:'users',
-        username:mainUser.username
+        userName:mainUser.userName
     }
     websocket.send(JSON.stringify(data))
 
@@ -39,14 +37,17 @@ websocket.onmessage = function(event) {
     try{
         var data = JSON.parse(event.data)
         switch (data.type){
-            //get existing user
+            //get existing users
             case 'users':
                 mainUser.userId = data.userId
-                userButton(userId,mainUser.username)
-                addContacts(data.users)
+                sendTo_ = data.userId
+                var users = JSON.parse(data.users, reviver);
+                addContacts(users)
+                addContact(mainUser.userId,mainUser.userName)
+                break
             //get message receive
             case 'message':
-                messageAdd('<div class="message">' + data.userId + ': ' + data.message + '</div>');
+                messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
                 break
             //add new user
             case 'newUser':
@@ -77,20 +78,20 @@ function sendEvent() {
     var message = inputMessage.value;
 
     if (message.toString().length) {
-
         var data = {
             type: 'message',
-            userId: sendTo,
+            userId: sendTo_,
+            userName:mainUser.userName,
             message: message
-        };
-        if(userId != undefined){
-            websocket.send(JSON.stringify(data));
+        }
+        if(sendTo_ != undefined){
+            websocket.send(JSON.stringify(data))
         }
         else{ 
-            messageAdd('<div class="contact">No contact are choosen</div>');
+            messageAdd('<div class="contact">No contact are choosen</div>')
         }
 
-        message.value = "";
+        message.value = ""
     }
 }
 
@@ -101,13 +102,27 @@ function messageAdd(message) {
 }
 
 function addContacts(users){
-    users.forEach((key, value) => {
+
+    for (const [key, value] of users.entries()) {
+
         if(key != mainUser.userId){
             addContact(key,value[1])
-        }
-    })
 
+        }
+    }
 }
+
+//Array to map
+function reviver(key, value) {
+    if(typeof value === 'object' && value !== null) {
+      if (value.dataType === 'Map') {
+        return new Map(value.value);
+      }
+    }
+    return value;
+  }
+
+
 function addContact(userId, userName){
     var contact = document.getElementById('contact');
     contact.insertAdjacentHTML('afterend', '<button id="'+ userId +'">'+ userName +'</button>')
@@ -116,6 +131,6 @@ function addContact(userId, userName){
 }
 
 function userButton(userId,userName){
-    contact.innerHTML = userName
+    dest.innerHTML = userName
     sendTo = userId
 }
