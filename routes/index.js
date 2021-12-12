@@ -10,6 +10,7 @@ router.get('/', function(req, res, next) {
     res.send('respond with a resource');
 });
 router.get('/users/sign', user.showSign);
+
 router.post('/users/do/sign', user.doSign);
 
 router.post('/users/do/log', user.doLog);

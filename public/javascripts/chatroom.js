@@ -1,22 +1,23 @@
+//const { response } = require("../../app")
 
 serverUrl = 'ws://localhost:9876/server'
 const websocket = new WebSocket(serverUrl)
-var user = require("../controllers/user_controller");
 
 const inputMessage = document.getElementById('message')
 const sendButton = document.getElementById('send')
 const contact = document.getElementById('contact')
 //contact.innerHTML = mainUser.userName
 
-//send to me by default
-var sendTo = mainUser.userId
+
 
 var mainUser = {
-    username:undefined,
+    username: req.body,
     userId:undefined
 }
 
-var userId = undefined
+//send to me by default
+var sendTo = mainUser.userId
+
     
 sendButton.addEventListener('click',sendEvent, false);
 
