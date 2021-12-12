@@ -14,6 +14,10 @@ const wss = new WebSocket.Server({
     server
 })
 
+/*
+add message
+
+*/
 // HashMap: {key: userId, value: [ws, userName]}
 const usersId = new Map()
 
