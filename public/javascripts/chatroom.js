@@ -51,7 +51,9 @@ websocket.onmessage = function(event) {
                 break
             //add new user
             case 'newUser':
+                console.log(data.userName)
                 addContact(data.userId,data.userName)
+                break
 
             default:
                 console.log(`Wrong expression`)
@@ -104,15 +106,13 @@ function messageAdd(message) {
 function addContacts(users){
 
     for (const [key, value] of users.entries()) {
-
         if(key != mainUser.userId){
             addContact(key,value[1])
-
         }
     }
 }
 
-//Array to map
+//Array to map 
 function reviver(key, value) {
     if(typeof value === 'object' && value !== null) {
       if (value.dataType === 'Map') {
@@ -126,11 +126,15 @@ function reviver(key, value) {
 function addContact(userId, userName){
     var contact = document.getElementById('contact');
     contact.insertAdjacentHTML('afterend', '<button id="'+ userId +'">'+ userName +'</button>')
-    var contactButton = document.getElementById(userId.toString())
-    contactButton.addEventListener('click',userButton(userId,userName),false)
+    var contactButton = document.getElementById(userId)
+    contactButton.addEventListener('click',function(){
+        dest.innerHTML = userName
+        sendTo_ = userId
+    } ,false)
 }
 
 function userButton(userId,userName){
     dest.innerHTML = userName
-    sendTo = userId
+    sendTo_ = userId
+    console.log(sendTo_)
 }

@@ -43,18 +43,16 @@ function check(client, data, userId){
   switch (data.type){
     case 'users':
         usersId.set(userId,[client, data.userName])
-        var data = {
+        var dataNewUser = {
             type: 'users',
-            userId:userId,
+            userId: userId,
             users: JSON.stringify(usersId,replacer)
         }
-        client.send(JSON.stringify(data))
+        client.send(JSON.stringify(dataNewUser))
+        broadcast(userId,data.userName)
         break
     case 'message':
-        console.log(usersId)
-        console.log(data.userId)
         var ws = usersId.get(data.userId)
-        console.log(ws)
         if (ws[0] == undefined){
             console.log('userid undefined')
         }
@@ -94,17 +92,19 @@ function checkCredential(userName, password, userId){
   return cred
 }*/
 
+/*BroadCast the new user to all users*/ 
 function broadcast(userId, userName){
-  usersId.forEach((key, value) => {
-    if(key != userId){
-        data = {
-          type :'newUser',
-          userName: userName,
-          userId:userId
+    for (const [key, value] of usersId.entries()) {
+        if(key != userId){
+            data = {
+                type :'newUser',
+                userName: userName,
+                userId: userId
+              }
+            console.log(data)
+            value[0].send(JSON.stringify(data))
         }
-        value[0].send(JSON.stringify())
     }
-  })
 }
 
 // view engine setup
