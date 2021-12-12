@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var user = require("../controllers/user_controller");
 
+
 /* GET home page. */
 router.get('/', user.showLogin);
 /* GET users listing. */

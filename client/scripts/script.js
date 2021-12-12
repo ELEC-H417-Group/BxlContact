@@ -50,7 +50,7 @@
     //on websocket error
     websocket.onerror = function(event) {
     };
-    
+     
     function signIn(){
         cred = {
             type: 'signin',

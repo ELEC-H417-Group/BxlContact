@@ -1,18 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UFT-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equivox="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
 </head>
-
+<style>
+    .leftside{
+        float:left;
+    }
+    .rightside {
+        float:right;
+    }
+</style>
 <body>
-    <div id="messages"></div>
-    <input id="message" />
-    <button id="send">Send Messages</button>
+    <div class="leftside" id="chat">
+        <div id="contact"> No Contact </div>
+		<div id="chat-message"> </div>
+		<input id="message"/>
+		<button id="send">Send Messages</button>
+	</div>
     <script src="/javascripts/chatroom.js"></script>
+
+    <div class="rightside" id="contact">
+        <div id="contact"> </div>
+
+    </div>
+    
 </body>
 
 </html>
