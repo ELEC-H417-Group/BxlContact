@@ -39,12 +39,7 @@ websocket.onmessage = function(event) {
         switch (data.type){
             //get existing users
             case 'users':
-                mainUser.userId = data.userId
-                sendTo_ = data.userId
-                var users = JSON.parse(data.users, reviver);
-                userButton(mainUser.userId,mainUser.userName)
-                addContacts(users)
-                addContact(mainUser.userId,mainUser.userName)
+                getUsers(data)
                 break
             //get message receive
             case 'message':
@@ -52,7 +47,6 @@ websocket.onmessage = function(event) {
                 break
             //add new user
             case 'newUser':
-                console.log(data.userName)
                 addContact(data.userId,data.userName)
                 break
 
@@ -76,6 +70,14 @@ websocket.onerror = function(event) {
     messageAdd('<div class="message red">Connection to chat failed.</div>');
 }
 
+function getUsers(data){
+    mainUser.userId = data.userId
+    sendTo_ = data.userId
+    var users = JSON.parse(data.users, reviver);
+    userButton(mainUser.userId,mainUser.userName)
+    addContacts(users)
+    addContact(mainUser.userId,mainUser.userName)
+}
 function sendEvent() {
 
     var message = inputMessage.value;
@@ -132,10 +134,25 @@ function addContact(userId, userName){
         dest.innerHTML = userName
         sendTo_ = userId
     } ,false)
+    var friendListHTML = "";
+    friendListHTML +=
+        '<li>' + 
+            '<div class="liLeft"><img src="/static/img/emoji/emoji_01.png"></div>' +
+                '<div class="liRight">' +
+                    '<span class="hidden-userId">' + userId + '</span>' + 
+                    '<span class="intername">' + userName + '</span>' + 
+                    '<span class="infor"></span>' + 
+                '</div>' +
+        '</li>';
+
+    $('.conLeft ul').append(friendListHTML);
+
+    //listener doesn't work!!
+    //$('.conLeft ul li').on('click', friendLiClickEvent, false);
 }
+
 
 function userButton(userId,userName){
     dest.innerHTML = userName
     sendTo_ = userId
-    console.log(sendTo_)
 }
