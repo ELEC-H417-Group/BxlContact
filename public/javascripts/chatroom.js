@@ -1,5 +1,10 @@
 //const { response } = require("../../app")
 
+const crypto = require('crypto')
+const util = require('util')
+var ab2str = require('arraybuffer-to-string')
+
+//browserify public/javascripts/chatroom.js -o public/javascripts/bundle.js
 serverUrl = 'ws://localhost:9876/server'
 const websocket = new WebSocket(serverUrl)
 
@@ -8,6 +13,15 @@ const sendButton = document.getElementById('send')
 const dest = document.getElementById('dest')
 
 //contact.innerHTML = mainUser.userName
+
+var mainUser = {
+    userName: dest.getAttribute('data-value'),
+    userId: undefined
+}
+
+//send to me by default
+var sendTo_ = ""
+
 
 
 var KeyHelper = window.libsignal.KeyHelper;
@@ -65,7 +79,6 @@ function generatePreKeyBundle(store, preKeyId, signedPreKeyId) {
     var bobStore = new SignalProtocolStore();
 
 
-
     var bobPreKeyId = 1337;
     var bobSignedKeyId = 1;
 
@@ -82,7 +95,7 @@ function generatePreKeyBundle(store, preKeyId, signedPreKeyId) {
             return builder.processPreKey(preKeyBundle).then(function() {
             
                 
-              var originalMessage = toArrayBuffer("my message ......");
+              var originalMessage = "my message ......";
               var aliceSessionCipher = new libsignal.SessionCipher(aliceStore, BOB_ADDRESS);
               var bobSessionCipher = new libsignal.SessionCipher(bobStore, ALICE_ADDRESS);
 
@@ -93,11 +106,11 @@ function generatePreKeyBundle(store, preKeyId, signedPreKeyId) {
 
               }).then(function(plaintext) {
 
-                  alert(plaintext);
+                  console.log(ab2str(plaintext))
 
               });
 
-              bobSessionCipher.encrypt(originalMessage).then(function(ciphertext) {
+             /* bobSessionCipher.encrypt(originalMessage).then(function(ciphertext) {
 
                   return aliceSessionCipher.decryptWhisperMessage(ciphertext.body, 'binary');
 
@@ -105,7 +118,7 @@ function generatePreKeyBundle(store, preKeyId, signedPreKeyId) {
 
                   assertEqualArrayBuffers(plaintext, originalMessage);
 
-              });
+              });*/
 
             });
         });
@@ -118,15 +131,7 @@ function toArrayBuffer(buf) {
     return ab;
 }
 
-var mainUser = {
-    userName: dest.getAttribute('data-value'),
-    userId: undefined
-}
 
-//send to me by default
-var sendTo_ = ""
-
-    
 sendButton.addEventListener('click',sendEvent, false);
 
 //on websocket open
@@ -265,4 +270,8 @@ function userButton(userId,userName){
     dest.innerHTML = userName
     sendTo_ = userId
 }
+
+
+
+
 

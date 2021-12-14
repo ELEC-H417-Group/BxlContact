@@ -4,6 +4,12 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+const uniqId = require('uniqid')
+
+let crypto;
+
+crypto = require('crypto');
+
 
 var indexRouter = require('./routes/index');
 
@@ -22,7 +28,7 @@ add message
 const usersId = new Map()
 
 wss.on('connection', function connection(ws) {
-  var userId = genereteUserId()
+  var userId = uniqId()
 
   ws.on('message', function message(msg) {
     wss.clients.forEach(function each(client) {
@@ -34,14 +40,14 @@ wss.on('connection', function connection(ws) {
   })
 })
 
-function genereteUserId(){
+/*function genereteUserId(){
   //Math.floor(Math.random() * 100)
   var userId = Date.now() % 1000
   while (usersId.has(userId)){
     userId = Date.now() % 1000
   }
   return userId
-}
+}*/
 
 function check(client, data, userId){
   switch (data.type){
