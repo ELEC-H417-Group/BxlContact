@@ -2,7 +2,7 @@ const WebSocket = require('ws')
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
-var cookieParser = require('cookie-parser');
+var session = require('express-session');
 var logger = require('morgan');
 const uniqId = require('uniqid')
 
@@ -11,32 +11,36 @@ let crypto;
 crypto = require('crypto');
 
 
+
 var indexRouter = require('./routes/index');
 
 var app = express();
+
+app.use(session({
+    secret: '@BXLBXLBXL@',
+    key: 'express_chapter6',
+    saveUninitialized: false,
+}));
 
 const server = app.listen(9876)
 const wss = new WebSocket.Server({
     server
 })
 
-/*
-add message
 
-*/
 // HashMap: {key:  userName, value: ws}
 const usersName = new Map()
 
 wss.on('connection', function connection(ws) {
-  ws.on('message', function message(msg) {
-    wss.clients.forEach(function each(client) {
-      if (client == ws && client.readyState === WebSocket.OPEN) {
-        var data = JSON.parse(msg)
-        check(client, data) 
-      }
+    ws.on('message', function message(msg) {
+      wss.clients.forEach(function each(client) {
+        if (client == ws && client.readyState === WebSocket.OPEN) {
+          var data = JSON.parse(msg)
+          check(client, data) 
+        }
+      })
     })
-  })
-})
+}
 
 function check(client, data){
   switch (data.type){
@@ -83,24 +87,24 @@ function sendMessageTo(data){
 
 //Map to object
 function replacer(key, value) {
-    if(value instanceof Map) {
-      return {
-        dataType: 'Map',
-        value: Array.from(value.entries()), // or with spread: value: [...value]
-      };
+    if (value instanceof Map) {
+        return {
+            dataType: 'Map',
+            value: Array.from(value.entries()), // or with spread: value: [...value]
+        };
     } else {
-      return value;
+        return value;
     }
-  }
+}
 
 
-/*BroadCast the new user to all user*/ 
+//BroadCast the new user to all user
 function broadcast(userName){
     for (const [key, value] of usersName.entries()) {
         if(key != userName){
             data = {
-                type :'newUser',
-                userName: userName,
+                type: 'newUser',
+                userName: userName
               }
             value.send(JSON.stringify(data))
         }
@@ -114,7 +118,6 @@ app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
@@ -122,6 +125,12 @@ app.use('/', indexRouter);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
     next(createError(404));
+});
+
+// make session a global var
+app.use(function(req, res, next) {
+    res.locals = req.session;
+    next();
 });
 
 // error handler

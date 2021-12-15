@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UFT-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equivox="X-UA-Compatible" content="ie=edge">
+<<<<<<< HEAD
     <title>Document</title>
     <link rel="icon" href="/static/img/chat.ico" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="/static/css/chatroom.css">
@@ -11,17 +13,24 @@
     <link rel="stylesheet" type="text/css" href="/static/css/common/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/static/css/common/fileinput.min.css">
     
+=======
+    <title>BxlContact</title>
+    <link rel="icon" type="image/x-icon" href="/images/favicon.png" />
+    <link href="/stylesheets/bootstrap.min.css" rel="stylesheet">
+    <link href="/stylesheets/chat.css" rel="stylesheet">
+>>>>>>> main
 </head>
 <style>
-    .leftside{
-        float:left;
+    .leftside {
+        float: left;
     }
+    
     .rightside {
-        float:right;
+        float: right;
     }
 </style>
-<body>
 
+<<<<<<< HEAD
     <div class="leftside" id="chat">
         <div id="dest" data-value=<%=text%>>  NO CONTACT </div>
 		<div id="chat-message"> </div>
@@ -30,10 +39,28 @@
 	</div>
     <script  src="/javascripts/chatroom.js"></script>
     
+=======
+<body>
+>>>>>>> main
 
-    <div class="rightside" id="contact">
-        <div id="contact"> </div>
+    <body style="background-image: url(/static/img/webchat.jpg); background-attachment:fixed; background-position:center; background-size:100% 100%; ">
+        <div class="container" style="height: 650px; margin-top: 50px; padding: 0px; background-color: #f5f5f5; ">
+            <nav class="navbar navbar-inverse">
+                <div class="container-fluid">
+                    <!-- Brand and toggle get grouped for better mobile display -->
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                            <span class="sr-only">Toggle navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+                        <a class="navbar-brand">
+                            <%=username%>
+                        </a>
+                    </div>
 
+<<<<<<< HEAD
     </div>
 
 
@@ -88,66 +115,86 @@
                             <li><img src="/static/img/emoji/emoji_22.png"></li>
                             <li><img src="/static/img/emoji/emoji_23.png"></li>
                             <li><img src="/static/img/emoji/emoji_24.png"></li>
+=======
+                    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                        <ul class="nav navbar-nav">
+                            <li class="active"><a href="#">BxlContact<span class="sr-only">(current)</span></a></li>
+>>>>>>> main
                         </ul>
-                    </div>
-                    <div class="footTop">
-                        <ul>
-                            <li class="ExP">
-                                <img src="/static/img/emoji.jpg">
-                            </li>
-                            <li class="file-upload">
-                                <a data-toggle="modal" data-target="#upload-modal" data-backdrop="static">
-                                    <img  src="/static/img/upload.jpg">
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="inputBox">
-                        <input id="toUserId" type="hidden">
-                        <input id="toGroupId" type="hidden">
-                        <textarea id="dope" style="width: 99%;height: 75px; border: none;outline: none;" name="" rows="" cols=""></textarea>
-                        <button title="Press Enter to Send" class="sendBtn">Send</button>
+                        <form method="POST" action="/logout/">
+                            <input type="submit" class="btn btn-danger navbar-btn navbar-right" value="Exit" />
+                        </form>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <div class="modal fade" id="upload-modal">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button class="close" data-dismiss="modal">&times;</button>
-                        <h3 class="modal-title text-primary">Upload File</h3>
+            </nav>
+
+            <div class="container row" style="margin-top: -20px">
+                <div class="col-xs-3 col-sm-3 col-md-3">
+                    <div class="alert alert-success" role="alert" style="margin-top: 15px; margin-bottom: -15px">Online Users</div>
+                    <div id="room-list">
+                        <ul class="list-group" style="margin-top: 15px">
+                            {% for user in users_online %} {% if user.username == username %} {% else %}
+                            <li class="list-group-item">
+                                <a href="{% url 'friendprofile' username user.username %}" class="list-group-item">{{ user.username }}</a>
+                            </li>
+                        </ul>
                     </div>
-                    <div class="modal-body">
-                    <form class="form-horizontal">
-                        <div class="form-group">
-                            <label class="col-sm-3 control-label">Select</label>
-                            <div class="col-sm-9">
-                                <input type="file" name="file"
-                                    class="col-sm-9 myfile" />
-                                <p class="help-block">Max Size : 30 Mb</p>
+
+                </div>
+
+                <div class="col-xs-9 col-md-9 col-sm-9" style="margin-top: 15px; padding-right: 0px">
+                    <div id="room" style="height: 450px">
+                        <div class="panel panel-success">
+                            <div class="panel-heading">
+                                Chat
+                            </div>
+                            <div id="chat-message" class="panel-body" style="height: 350px; padding: 0px; ">
+                                <!-- <textarea id="chat-log" style="height: 100%; width: 100%; border-color: #f5f5f5;">
+                                    </textarea> -->
+                            </div>
+                            <div class="panel-footer" style="padding: 0px">
+                                <input id="chat-message-input" type="text" style="width: 100%; height: 120px; border: #f5f5f5; border-top-color: #dff0d8; " />
+                                <div class="col-md-offset-11">
+                                    <input id="chat-message-submit" class="btn btn-primary" type="button" value="Send" style="margin-top: 10px;margin-bottom: 10px; " />
+                                </div>
+
                             </div>
                         </div>
-                    </form>
-                    </div>
-                    <div class="modal-footer">
-                            <button id="upload-cancel" class="btn btn-sm btn-muted" data-dismiss="modal">
-                            <i class="glyphicon glyphicon-remove"></i> Cancel
-                        </button>
                     </div>
                 </div>
             </div>
+
+
         </div>
-        
-    </div>
-    <script type="text/javascript" src="/static/js/common/jquery-1.9.1.min.js"></script>
-    <script type="text/javascript" src="/static/js/common/jquery.actual.min.js"></script>
-    <script type="text/javascript" src="/static/js/common/bootstrap.min.js"></script>
-    <script type="text/javascript" src="/static/js/common/fileinput.min.js"></script>
-    <script type="text/javascript" src="/static/js/common/zh.js"></script>    
-    
-    
-</body>
+        <div class="container">
+            <div style="margin-bottom: 10px; margin-top: 20px; text-align: center; font-size: 16px; color: #e3e3e3;">This is a demo for
+                <a href="https://github.com/ELEC-H417-Group/BxlContact" style="color: #e3e3e3;" target="_blank">ELEC-H417-ULB</a>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+    </body>
+
+    <!-- <body>
+
+    <div class="leftside" id="chat">
+        <div id="dest" data-value=<%=username%>> NO CONTACT </div>
+                    <div id="chat-message"> </div>
+                    <input id="message" />
+                    <button id="send">Send Messages</button>
+                </div>
+
+
+                <script src="/javascripts/chatroom.js"></script>
+
+                <div class="rightside" id="contact">
+                    <div id="contact"> </div>
+
+                </div>
+
+
+
+    </body> -->
 
 </html>
