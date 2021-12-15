@@ -19,8 +19,9 @@ var mainUser = {
 //send to me by default
 var sendTo_ = mainUser.userName
 
+var OnlineList = []
 
-sendButton.addEventListener('click',sendEvent, false);
+sendButton.addEventListener('click', sendEvent, false);
 
 //on websocket open
 websocket.onopen = function() {
@@ -39,7 +40,6 @@ websocket.onopen = function() {
 websocket.onmessage = function(event) {
     try {
         var data = JSON.parse(event.data)
-        console.log('data: ' + data.type)
         switch (data.type) {
             //get existing users
             case 'users':
@@ -47,6 +47,7 @@ websocket.onmessage = function(event) {
                 break
                 //get message receive
             case 'message':
+                console.log('data.userName: ' + data.userName)
                 messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
                 break
                 //add new user
@@ -73,7 +74,7 @@ websocket.onerror = function(event) {
     messageAdd('<div class="message red">Connection to chat failed.</div>');
 }
 
-function getUsers(data){
+function getUsers(data) {
     sendTo_ = data.userName
     var users = JSON.parse(data.users, reviver);
     userButton(mainUser.userName)
@@ -89,14 +90,15 @@ function sendEvent() {
     if (message.toString().length) {
         var data = {
             type: 'message',
-            sendToUser:sendTo_,
+            sendToUser: sendTo_,
+            from: mainUser.userName,
             message: message
         }
-        console.log(sendTo_)
-        if(sendTo_ != undefined){
+        if (sendTo_ != mainUser.userName) {
+            messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
             websocket.send(JSON.stringify(data))
         } else {
-            messageAdd('<div class="contact">No contact are choosen</div>')
+            websocket.send(JSON.stringify(data))
         }
 
         message.value = ""
@@ -112,8 +114,8 @@ function messageAdd(message) {
 function addContacts(users) {
 
     for (const [key, value] of users.entries()) {
-        if(key != mainUser.userName){
-            addContact(key,value)
+        if (key != mainUser.userName) {
+            addContact(key, value)
         }
     }
 }
@@ -130,38 +132,20 @@ function reviver(key, value) {
 
 
 //add a contact to the UI
-function addContact(userName){
+function addContact(userName) {
+    if (OnlineList.includes(userName)) return
+    OnlineList.push(userName)
     var contact = document.getElementById('contact');
-    contact.insertAdjacentHTML('afterend', '<button id="'+ userName +'">'+ userName +'</button>')
+    contact.insertAdjacentHTML('afterend', '<button class="list-group-item" id="' + userName + '">' + userName + '</button>')
     var contactButton = document.getElementById(userName)
-    contactButton.addEventListener('click',function(){
+    contactButton.addEventListener('click', function() {
         dest.innerHTML = userName
         sendTo_ = userName
-    } ,false)
-    var friendListHTML = "";
-    friendListHTML +=
-        '<li>' + 
-            '<div class="liLeft"><img src="/static/img/emoji/emoji_01.png"></div>' +
-                '<div class="liRight">' +
-                    '<span class="hidden-userId">' + userName + '</span>' + 
-                    '<span class="intername">' + userName + '</span>' + 
-                    '<span class="infor"></span>' + 
-                '</div>' +
-        '</li>';
-
-    $('.conLeft ul').append(friendListHTML);
-
-    //listener doesn't work!!
-    //$('.conLeft ul li').on('click', friendLiClickEvent, false);
+    }, false)
 }
 
 
-function userButton(userName){
+function userButton(userName) {
     dest.innerHTML = userName
     sendTo_ = userName
 }
-
-
-
-
-
