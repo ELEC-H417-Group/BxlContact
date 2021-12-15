@@ -162,7 +162,7 @@ function messageAdd(message) {
 }
 
 function addPreKeyBundles(preKeyBundles){
-    for (const [key, value] of users.entries()) {
+    for (const [key, value] of preKeyBundles.entries()) {
         if (key != mainUser.userName) {
             localStorageBundles.put(key, value)
         }
@@ -214,25 +214,44 @@ function userButton(userName) {
  * @param {SignalProtocolStore} store 
  */
 function initialize(store){
-    generateIdentity(store)
+    Promise.resolve( function () {
+        generateIdentity(store)
+    }).then(function (){
+        return generatePreKeyBundle(store)
+    }).then(function (preKeyBundle){
+        registerNewPreKeyBundle(mainUser.userName, preKeyBundle)
+    })
 
-    var preKeyBundle = generatePreKeyBundle(store,userName, prekeyBundle)
-
-    registerNewPreKeyBundle(userName, preKeyBundle)
+    /*var preKeyBundle = await generatePreKeyBundle(store)
+    console.log('preKeyBundle')
+    console.log(preKeyBundle)
+    registerNewPreKeyBundle(mainUser.userName, preKeyBundle)
+    console.log(localStorageBundles)*/
 }
 /**
  * Generates a new identity for the local user
  * @param {SignalProtocolStore} store 
  */
-function generateIdentity(store) {
-    var results = Promise.all([
+/*async function generateIdentity(store) {
+    var results = await Promise.all([
         KeyHelper.generateIdentityKeyPair(),
         KeyHelper.generateRegistrationId(),
     ])
+    console.log('result')
     console.log(results)
     store.put('identityKey', results[0]);
     store.put('registrationId', results[1]);
     
+}*/
+
+function generateIdentity(store) {
+    return Promise.all([
+        KeyHelper.generateIdentityKeyPair(),
+        KeyHelper.generateRegistrationId(),
+    ]).then(function(result) {
+        store.put('identityKey', result[0]);
+        store.put('registrationId', result[1]);
+    });
 }
 
 /**
@@ -240,8 +259,8 @@ function generateIdentity(store) {
  * @param {SignalProtocolStore} store 
  * @returns A pre-key bundle
  */
-function generatePreKeyBundle(store) {
-    var result = Promise.all([
+/*async function generatePreKeyBundle(store) {
+    var result = await Promise.all([
         store.getIdentityKeyPair(),
         store.getLocalRegistrationId()
     ])
@@ -249,7 +268,7 @@ function generatePreKeyBundle(store) {
     var identity = result[0];
     var registrationId = result[1];
 
-    var keys = Promise.all([
+    var keys = await Promise.all([
         KeyHelper.generatePreKey(registrationId + 1),
         KeyHelper.generateSignedPreKey(identity, registrationId + 1),
     ])
@@ -264,7 +283,7 @@ function generatePreKeyBundle(store) {
         identityKey: identity.pubKey,
         registrationId : registrationId,
         preKey:  {
-            keyId     : preKeyId,
+            keyId     : preKey.keyId,
             publicKey : preKey.keyPair.pubKey
         },
         signedPreKey: {
@@ -273,6 +292,41 @@ function generatePreKeyBundle(store) {
             signature : signedPreKey.signature
         }
     }   
+}*/
+
+function generatePreKeyBundle(store) {
+    return Promise.all([
+        store.getIdentityKeyPair(),
+        store.getLocalRegistrationId()
+    ]).then(function(result) {
+        var identity = result[0];
+        var registrationId = result[1];
+
+        return Promise.all([
+            KeyHelper.generatePreKey(registrationId +1),
+            KeyHelper.generateSignedPreKey(identity, registrationId + 1),
+        ]).then(function(keys) {
+            var preKey = keys[0]
+            var signedPreKey = keys[1];
+
+            store.storePreKey(preKey.keyId, preKey.keyPair);
+            store.storeSignedPreKey(signedPreKey.keyId, signedPreKey.keyPair);
+
+            return {
+                identityKey: identity.pubKey,
+                registrationId : registrationId,
+                preKey:  {
+                    keyId     : preKey.keyId,
+                    publicKey : preKey.keyPair.pubKey
+                },
+                signedPreKey: {
+                    keyId     : signedPreKey.keyId,
+                    publicKey : signedPreKey.keyPair.pubKey,
+                    signature : signedPreKey.signature
+                }
+            }
+        });
+    });
 }
 
 /**
@@ -283,10 +337,10 @@ function generatePreKeyBundle(store) {
  */
 function registerNewPreKeyBundle(userName, preKeyBundle){
     let storageBundle = {...preKeyBundle}
-    storageBundle.identityKey = util.arrayBufferToBase64(storageBundle.identityKey)
-    storageBundle.preKey.publicKey = util.arrayBufferToBase64(storageBundle.preKey.publicKey)
-    storageBundle.signedPreKey.publicKey = util.arrayBufferToBase64(storageBundle.signedPreKey.publicKey)
-    storageBundle.signedPreKey.signature = util.arrayBufferToBase64(storageBundle.signedPreKey.signature)
+    storageBundle.identityKey = arrayBufferToBase64(storageBundle.identityKey)
+    storageBundle.preKey.publicKey = arrayBufferToBase64(storageBundle.preKey.publicKey)
+    storageBundle.signedPreKey.publicKey = arrayBufferToBase64(storageBundle.signedPreKey.publicKey)
+    storageBundle.signedPreKey.signature = arrayBufferToBase64(storageBundle.signedPreKey.signature)
     localStorageBundles.set(userName, storageBundle)
 }
 
@@ -298,45 +352,85 @@ function registerNewPreKeyBundle(userName, preKeyBundle){
  */
 function getPreKeyBundle(userName){
     let storageBundle = localStorageBundles.get(userName)
-    storageBundle.identityKey = util.base64ToArrayBuffer(storageBundle.identityKey)
-    storageBundle.preKey.publicKey = util.base64ToArrayBuffer(storageBundle.preKey.publicKey)
-    storageBundle.signedPreKey.publicKey = util.base64ToArrayBuffer(storageBundle.signedPreKey.publicKey)
-    storageBundle.signedPreKey.signature = util.base64ToArrayBuffer(storageBundle.signedPreKey.signature)
-    return storageBundle
+    if (storageBundle == undefined){
+        console.log(localStorageBundles)
+        return undefined
+    }
+    else{
+        storageBundle.identityKey = base64ToArrayBuffer(storageBundle.identityKey)
+        storageBundle.preKey.publicKey = base64ToArrayBuffer(storageBundle.preKey.publicKey)
+        storageBundle.signedPreKey.publicKey = base64ToArrayBuffer(storageBundle.signedPreKey.publicKey)
+        storageBundle.signedPreKey.signature = base64ToArrayBuffer(storageBundle.signedPreKey.signature)
+        return storageBundle
+    }
+    
 }
+
+function arrayBufferToBase64( buffer ) {
+    var binary = '';
+    var bytes = new Uint8Array( buffer );
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    return window.btoa( binary );
+}
+
+
+
+function base64ToArrayBuffer(base64) {
+    var binary_string =  window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array( len );
+    for (var i = 0; i < len; i++)        {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+
+
 //Send a message to 'sendTo' when clicking on the button send
 function sendMsgEvent() {
 
     var message = inputMessage.value;
 
     if (message.toString().length) {
-
-        encryptedMessage = encryptMessage(sendTo_, message)
-        var data = {
-            type: 'message',
-            receiverId: sendTo_,
-            senderId: mainUser.userName,
-            message: encryptedMessage
-        }
-        lastSendMessage = message
-        if (sendTo_ != mainUser.userName) {
-            messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
-            websocket.send(JSON.stringify(data))
-        } else {
-            websocket.send(JSON.stringify(data))
-        }
-
-        message.value = ""
+        
+        return Promise.resolve(function () {
+            return encryptMessage(sendTo_, message)
+        }).then(function (encryptedMessage){
+            var data = {
+                type: 'message',
+                receiverId: sendTo_,
+                senderId: mainUser.userName,
+                message: encryptedMessage
+            }
+            lastSendMessage = message
+            if (sendTo_ != mainUser.userName) {
+                messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
+                websocket.send(JSON.stringify(data))
+            } else {
+                websocket.send(JSON.stringify(data))
+            }
+    
+            message.value = ""
+        })
+        
     }
 }
 
 function receivMsg(data){
-    if (senderId == mainUser.userName){
+    if (data.senderId == mainUser.userName){
         return lastSendMessage
     }
     else {
-        decryptedMessage = decryptMessage(data.senderId, data.message)
-        return ab2str(decryptMessage)
+        decryptedMessage = Promise.resolve(function (){
+            return decryptMessage(data.senderId, data.message)
+        }).then(function(decryptMessage){
+            return ab2str(decryptMessage)
+        })
+        
     }
 }
 
@@ -344,10 +438,12 @@ function encryptMessage(remoteUserName, message){
 
     if (localSessionsCipher.has(remoteUserName)){
         var sessionCipher = localSessionsCipher.get(remoteUserName)
-        let ciphertext = sessionCipher.encrypt(message)
-        return ciphertext
+        return Promise.resolve( function (){
+            sessionCipher.encrypt(message)
+        }).then(function (){
+            return ciphertext
+        })
     }
-   
     else {
         var address = new libsignal.SignalProtocolAddress(remoteUserName, 123)
 
@@ -355,15 +451,18 @@ function encryptMessage(remoteUserName, message){
 
         var remoteUserPreKey = getPreKeyBundle(remoteUserName)
 
-        return sessionBuilder.processPreKey(remoteUserPreKey).then(function(){
+        return Promise.resolve( function() {
+            sessionBuilder.processPreKey(remoteUserPreKey)
+        }).then(function (){
             var sessionCipher = new libsignal.SessionCipher(store,address)
 
             localSessionsCipher.put(remoteUserName,sessionCipher)
-
-            let ciphertext = sessionCipher.encrypt(message)
-            
+        }).then(function (){
+            return sessionCipher.encrypt(message)
+        }).then(function (){
             return ciphertext
         })
+  
     }
 }
 
@@ -380,16 +479,23 @@ function decryptMessage(remoteUserName, cipherText){
     var messageHasEmbeddedPreKeyBundle = cipherText.type == 3
 
     if(messageHasEmbeddedPreKeyBundle){
-        var decryptedMessage = sessionCipher.decryptPreKeyWhisperMessage(cipherText.body, 'binary')
-        return util.toString(decryptedMessage)
+        return Promise.resolve(function (){
+            return sessionCipher.decryptPreKeyWhisperMessage(cipherText.body, 'binary')
+        }).then(function (){
+            return util.toString(decryptedMessage)
+        })
+        
     }
     else{
-        var decryptedMessage = sessionCipher.decryptWhisperMessage(cipherText.body, 'binary')
-        return util.toString(decryptedMessage)
+        return Promise.resolve(function (){
+            return sessionCipher.decryptWhisperMessage(cipherText.body, 'binary')
+        }).then(function (){
+            return util.toString(decryptedMessage)
+        })
     }
 }
 
-
+/*
 
 var ALICE_ADDRESS = new libsignal.SignalProtocolAddress("xxxxxxxxx", "1"); 
 var BOB_ADDRESS   = new libsignal.SignalProtocolAddress("yyyyyyyyyyyyy", "1");
@@ -430,7 +536,14 @@ Promise.all([
 
         });
 
-        /* bobSessionCipher.encrypt(originalMessage).then(function(ciphertext) {
+       
+
+    });
+});
+
+*/
+/*
+  bobSessionCipher.encrypt(originalMessage).then(function(ciphertext) {
 
             return aliceSessionCipher.decryptWhisperMessage(ciphertext.body, 'binary');
 
@@ -438,12 +551,8 @@ Promise.all([
 
             assertEqualArrayBuffers(plaintext, originalMessage);
 
-        });*/
-
-    });
-});
-
-
+        });
+*/
 },{"arraybuffer-to-string":1,"buffer":5,"util":25}],3:[function(require,module,exports){
 (function (global){(function (){
 'use strict';
