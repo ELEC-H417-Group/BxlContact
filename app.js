@@ -48,7 +48,7 @@ wss.on('connection', function connection(ws) {
   }
   return userId
 }*/
-
+      
 function check(client, data, userId){
   switch (data.type){
     case 'users':
