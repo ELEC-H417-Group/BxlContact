@@ -24,58 +24,64 @@ const wss = new WebSocket.Server({
 add message
 
 */
-// HashMap: {key: userId, value: [ws, userName]}
-const usersId = new Map()
+// HashMap: {key:  userName, value: ws}
+const usersName = new Map()
 
 wss.on('connection', function connection(ws) {
-  var userId = uniqId()
-
   ws.on('message', function message(msg) {
     wss.clients.forEach(function each(client) {
       if (client == ws && client.readyState === WebSocket.OPEN) {
         var data = JSON.parse(msg)
-        check(client, data, userId) 
+        check(client, data) 
       }
     })
   })
 })
 
-/*function genereteUserId(){
-  //Math.floor(Math.random() * 100)
-  var userId = Date.now() % 1000
-  while (usersId.has(userId)){
-    userId = Date.now() % 1000
-  }
-  return userId
-}*/
-
-function check(client, data, userId){
+function check(client, data){
   switch (data.type){
     case 'users':
-        usersId.set(userId,[client, data.userName])
-        var dataNewUser = {
-            type: 'users',
-            userId: userId,
-            users: JSON.stringify(usersId,replacer)
-        }
-        client.send(JSON.stringify(dataNewUser))
-        broadcast(userId,data.userName)
+        sendAllUsers(client,data)
         break
     case 'message':
-        var ws = usersId.get(data.userId)
-        if (ws[0] == undefined){
-            console.log('userid undefined')
-        }
-        else{
-            ws[0].send(JSON.stringify(data))
-        }
+        sendMessageTo(data)
         break
     default:
       console.log(`Wrong expression`)
   }
 }
 
-//map to object
+//Send to all users wich user is connected.
+function sendAllUsers(client, data){
+  usersName.set(data.userName,client)
+  console.log(usersName)
+  var dataNewUser = {
+      type: 'users',
+      userName: data.userName,
+      users: JSON.stringify(usersName,replacer)
+  }
+  client.send(JSON.stringify(dataNewUser))
+  broadcast(data.userName)
+}
+
+//send a message to a specific user
+function sendMessageTo(data){
+  console.log(data.sendToUser)
+  var ws = usersName.get(data.sendToUser)
+  if (ws == undefined){
+      console.log('userName undefined')
+  }
+  else{
+      msg = {
+        type : 'message',
+        userName : data.sendToUser,
+        message: data.message
+      }
+      ws.send(JSON.stringify(msg))
+  }
+}
+
+//Map to object
 function replacer(key, value) {
     if(value instanceof Map) {
       return {
@@ -87,32 +93,17 @@ function replacer(key, value) {
     }
   }
 
-/*
-function checkCredential(userName, password, userId){
-  cred = {
-    type: 'signin',
-    resp: 'false',
-    userId: userId,
-    userName: userName
-  }
-  
-  if (userName == "" && password == ""){
-      cred.resp = 'true'
-  }
-  return cred
-}*/
 
-/*BroadCast the new user to all users*/ 
-function broadcast(userId, userName){
-    for (const [key, value] of usersId.entries()) {
-        if(key != userId){
+/*BroadCast the new user to all user*/ 
+function broadcast(userName){
+    for (const [key, value] of usersName.entries()) {
+        if(key != userName){
             data = {
                 type :'newUser',
                 userName: userName,
-                userId: userId
               }
             console.log(data)
-            value[0].send(JSON.stringify(data))
+            value.send(JSON.stringify(data))
         }
     }
 }
