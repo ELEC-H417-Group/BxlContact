@@ -6,6 +6,8 @@ var session = require('express-session');
 var logger = require('morgan');
 const uniqId = require('uniqid')
 
+// connect to mysql
+
 let crypto;
 
 crypto = require('crypto');
