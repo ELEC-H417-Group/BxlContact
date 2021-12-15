@@ -245,38 +245,31 @@ function generateIdentity(store) {
 }*/
 
 function generatePreKeyBundle(store) {
-    return Promise.all([
-        store.getIdentityKeyPair(),
-        store.getLocalRegistrationId()
-    ]).then(function(result) {
-        var identity = result[0];
-        var registrationId = result[1];
+    return Promise.resolve(function(){
+            return [store.getIdentityKeyPair(), store.getLocalRegistrationId()]
+    }).then(function (result) {
+        return [KeyHelper.generatePreKey(result[1]+1), KeyHelper.generateSignedPreKey(result[0], result[1]+1)]
+    }).then(function(keys) {
+        var preKey = keys[0]
+        var signedPreKey = keys[1];
 
-        return Promise.all([
-            KeyHelper.generatePreKey(registrationId +1),
-            KeyHelper.generateSignedPreKey(identity, registrationId + 1),
-        ]).then(function(keys) {
-            var preKey = keys[0]
-            var signedPreKey = keys[1];
+        store.storePreKey(preKey.keyId, preKey.keyPair);
+        store.storeSignedPreKey(signedPreKey.keyId, signedPreKey.keyPair);
 
-            store.storePreKey(preKey.keyId, preKey.keyPair);
-            store.storeSignedPreKey(signedPreKey.keyId, signedPreKey.keyPair);
-
-            return {
-                identityKey: identity.pubKey,
-                registrationId : registrationId,
-                preKey:  {
-                    keyId     : preKey.keyId,
-                    publicKey : preKey.keyPair.pubKey
-                },
-                signedPreKey: {
-                    keyId     : signedPreKey.keyId,
-                    publicKey : signedPreKey.keyPair.pubKey,
-                    signature : signedPreKey.signature
-                }
+        return {
+            identityKey: identity.pubKey,
+            registrationId : registrationId,
+            preKey:  {
+                keyId     : preKey.keyId,
+                publicKey : preKey.keyPair.pubKey
+            },
+            signedPreKey: {
+                keyId     : signedPreKey.keyId,
+                publicKey : signedPreKey.keyPair.pubKey,
+                signature : signedPreKey.signature
             }
-        });
-    });
+        }
+    })
 }
 
 /**
