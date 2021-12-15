@@ -10,25 +10,43 @@ const inputMessage = document.getElementById('message')
 const sendButton = document.getElementById('chat-message-submit')
 const dest = document.getElementById('dest')
 
+
+var ab2str = require('arraybuffer-to-string')
+const util = require('util')
+const buffer = require('buffer')
 //contact.innerHTML = mainUser.userName
 
 var mainUser = {
     userName: dest.getAttribute('data-value'),
 }
 
+
+
+const KeyHelper = window.libsignal.KeyHelper;
+const libsignal = window.libsignal
+
+var store = new SignalProtocolStore()
+var localStorageBundles = new Map()
+var localSessionsCipher = new Map()
+var lastSendMessage = undefined
+
+initialize(store);
+
+
 //send to me by default
 var sendTo_ = mainUser.userName
 
 var OnlineList = []
 
-sendButton.addEventListener('click', sendEvent, false);
+sendButton.addEventListener('click', sendMsgEvent, false);
 
 //on websocket open
 websocket.onopen = function() {
 
     data = {
         type: 'users',
-        userName: mainUser.userName
+        userName: mainUser.userName,
+        preKeyBundle: getPreKeyBundle(mainUser.userName)
     }
     websocket.send(JSON.stringify(data))
     console.log('connected')
@@ -47,8 +65,7 @@ websocket.onmessage = function(event) {
                 break
                 //get message receive
             case 'message':
-                console.log('data.userName: ' + data.userName)
-                messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
+                messageAdd('<div class="message">' + data.senderId+ ': ' + receivMsg(data) + '</div>');
                 break
                 //add new user
             case 'newUser':
@@ -80,35 +97,26 @@ function getUsers(data) {
     userButton(mainUser.userName)
     addContacts(users)
     addContact(mainUser.userName)
+
+    var preKeysBundles = JSON.parse(data.preKeys, reviver)
+
+    addPreKeyBundles(preKeysBundles)
+
 }
 
-//Send a message to 'sendTo' when clicking on the button send
-function sendEvent() {
-
-    var message = inputMessage.value;
-
-    if (message.toString().length) {
-        var data = {
-            type: 'message',
-            sendToUser: sendTo_,
-            from: mainUser.userName,
-            message: message
-        }
-        if (sendTo_ != mainUser.userName) {
-            messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
-            websocket.send(JSON.stringify(data))
-        } else {
-            websocket.send(JSON.stringify(data))
-        }
-
-        message.value = ""
-    }
-}
 
 function messageAdd(message) {
     var chatMessage = document.getElementById('chat-message');
     chatMessage.insertAdjacentHTML("beforeend", message);
     //chatMessage.scrollTop = chatMessage.scrollHeight;
+}
+
+function addPreKeyBundles(preKeyBundles){
+    for (const [key, value] of users.entries()) {
+        if (key != mainUser.userName) {
+            localStorageBundles.put(key, value)
+        }
+    }
 }
 
 function addContacts(users) {
@@ -149,3 +157,238 @@ function userButton(userName) {
     dest.innerHTML = userName
     sendTo_ = userName
 }
+
+
+/**
+ * Initialise the manager when the user log on 
+ * @param {SignalProtocolStore} store 
+ */
+async function initialize(store){
+    generateIdentity(store)
+
+    var preKeyBundle = generatePreKeyBundle(store,userName, prekeyBundle)
+
+    registerNewPreKeyBundle(userName, preKeyBundle)
+}
+/**
+ * Generates a new identity for the local user
+ * @param {SignalProtocolStore} store 
+ */
+function generateIdentity(store) {
+    var results = Promise.all([
+        KeyHelper.generateIdentityKeyPair(),
+        KeyHelper.generateRegistrationId(),
+    ])
+    store.put('identityKey', results[0]);
+    store.put('registrationId', results[1]);
+    
+}
+
+/**
+ * 
+ * @param {SignalProtocolStore} store 
+ * @returns A pre-key bundle
+ */
+function generatePreKeyBundle(store) {
+    var result = Promise.all([
+        store.getIdentityKeyPair(),
+        store.getLocalRegistrationId()
+    ])
+    
+    var identity = result[0];
+    var registrationId = result[1];
+
+    var keys = Promise.all([
+        KeyHelper.generatePreKey(registrationId + 1),
+        KeyHelper.generateSignedPreKey(identity, registrationId + 1),
+    ])
+  
+    let preKey = keys[0]
+    let signedPreKey = keys[1];
+
+    store.storePreKey(preKey.keyId, preKey.keyPair);
+    store.storeSignedPreKey(signedPreKey.keyId, signedPreKey.keyPair);
+
+    return {
+        identityKey: identity.pubKey,
+        registrationId : registrationId,
+        preKey:  {
+            keyId     : preKeyId,
+            publicKey : preKey.keyPair.pubKey
+        },
+        signedPreKey: {
+            keyId     : signedPreKey.keyId,
+            publicKey : signedPreKey.keyPair.pubKey,
+            signature : signedPreKey.signature
+        }
+    }   
+}
+
+/**
+ * When a user logs on they should generate their keys and then register them with the server.
+ * 
+ * @param userName The uniq username
+ * @param preKeyBundle User's generated pre-key bundle
+ */
+function registerNewPreKeyBundle(userName, preKeyBundle){
+    let storageBundle = {...preKeyBundle}
+    storageBundle.identityKey = util.arrayBufferToBase64(storageBundle.identityKey)
+    storageBundle.preKey.publicKey = util.arrayBufferToBase64(storageBundle.preKey.publicKey)
+    storageBundle.signedPreKey.publicKey = util.arrayBufferToBase64(storageBundle.signedPreKey.publicKey)
+    storageBundle.signedPreKey.signature = util.arrayBufferToBase64(storageBundle.signedPreKey.signature)
+    localStorageBundles.set(userName, storageBundle)
+}
+
+/**
+ * gets the pre-keys bundle for the given username to start a conversation.
+ * 
+ * @param userName The uniq username
+ * @returns storaBundle with the user's pre-key
+ */
+function getPreKeyBundle(userName){
+    let storageBundle = localStorageBundles.get(userName)
+    storageBundle.identityKey = util.base64ToArrayBuffer(storageBundle.identityKey)
+    storageBundle.preKey.publicKey = util.base64ToArrayBuffer(storageBundle.preKey.publicKey)
+    storageBundle.signedPreKey.publicKey = util.base64ToArrayBuffer(storageBundle.signedPreKey.publicKey)
+    storageBundle.signedPreKey.signature = util.base64ToArrayBuffer(storageBundle.signedPreKey.signature)
+    return storageBundle
+}
+//Send a message to 'sendTo' when clicking on the button send
+function sendMsgEvent() {
+
+    var message = inputMessage.value;
+
+    if (message.toString().length) {
+
+        encryptedMessage = encryptMessage(sendTo_, message)
+        var data = {
+            type: 'message',
+            receiverId: sendTo_,
+            senderId: mainUser.userName,
+            message: encryptedMessage
+        }
+        lastSendMessage = message
+        if (sendTo_ != mainUser.userName) {
+            messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
+            websocket.send(JSON.stringify(data))
+        } else {
+            websocket.send(JSON.stringify(data))
+        }
+
+        message.value = ""
+    }
+}
+
+function receivMsg(data){
+    if (senderId == mainUser.userName){
+        return lastSendMessage
+    }
+    else {
+        decryptedMessage = decryptMessage(data.senderId, data.message)
+        return ab2str(decryptMessage)
+    }
+}
+
+function encryptMessage(remoteUserName, message){
+
+    if (localSessionsCipher.has(remoteUserName)){
+        var sessionCipher = localSessionsCipher.get(remoteUserName)
+        let ciphertext = sessionCipher.encrypt(message)
+        return ciphertext
+    }
+   
+    else {
+        var address = new libsignal.SignalProtocolAddress(remoteUserName, 123)
+
+        var sessionBuilder = new libsignal.SessionBuilder(store,address)
+
+        var remoteUserPreKey = getPreKeyBundle(remoteUserName)
+
+        return sessionBuilder.processPreKey(remoteUserPreKey).then(function(){
+            var sessionCipher = new libsignal.SessionCipher(store,address)
+
+            localSessionsCipher.put(remoteUserName,sessionCipher)
+
+            let ciphertext = sessionCipher.encrypt(message)
+            
+            return ciphertext
+        })
+    }
+}
+
+function decryptMessage(remoteUserName, cipherText){
+    if (localSessionsCipher.has(remoteUserName)){
+        var sessionCipher = localSessionsCipher.get(remoteUserName)
+    }
+    else {
+        var address = new libsignal.SignalProtocolAddress(remoteUserName, 123)
+        var sessionCipher = new libsignal.SessionCipher(store,address)
+        localSessionsCipher.put(remoteUserName,sessionCipher)
+    }
+
+    var messageHasEmbeddedPreKeyBundle = cipherText.type == 3
+
+    if(messageHasEmbeddedPreKeyBundle){
+        var decryptedMessage = sessionCipher.decryptPreKeyWhisperMessage(cipherText.body, 'binary')
+        return util.toString(decryptedMessage)
+    }
+    else{
+        var decryptedMessage = sessionCipher.decryptWhisperMessage(cipherText.body, 'binary')
+        return util.toString(decryptedMessage)
+    }
+}
+
+
+
+var ALICE_ADDRESS = new libsignal.SignalProtocolAddress("xxxxxxxxx", "1"); 
+var BOB_ADDRESS   = new libsignal.SignalProtocolAddress("yyyyyyyyyyyyy", "1");
+
+var aliceStore = new SignalProtocolStore();
+
+var bobStore = new SignalProtocolStore();
+
+
+var bobPreKeyId = 1337;
+var bobSignedKeyId = 1;
+
+var Curve = libsignal.Curve;
+
+Promise.all([
+    generateIdentity(aliceStore),
+    generateIdentity(bobStore),
+]).then(function() {
+    return generatePreKeyBundle(bobStore, bobPreKeyId, bobSignedKeyId);
+}).then(function(preKeyBundle) {
+    
+    var builder = new libsignal.SessionBuilder(aliceStore, BOB_ADDRESS);
+    return builder.processPreKey(preKeyBundle).then(function() {
+    
+        
+        var originalMessage = "my message ......";
+        var aliceSessionCipher = new libsignal.SessionCipher(aliceStore, BOB_ADDRESS);
+        var bobSessionCipher = new libsignal.SessionCipher(bobStore, ALICE_ADDRESS);
+
+        aliceSessionCipher.encrypt(originalMessage).then(function(ciphertext) {
+
+            // check for ciphertext.type to be 3 which includes the PREKEY_BUNDLE
+            return bobSessionCipher.decryptPreKeyWhisperMessage(ciphertext.body, 'binary');
+
+        }).then(function(plaintext) {
+
+            console.log(ab2str(plaintext))
+
+        });
+
+        /* bobSessionCipher.encrypt(originalMessage).then(function(ciphertext) {
+
+            return aliceSessionCipher.decryptWhisperMessage(ciphertext.body, 'binary');
+
+        }).then(function(plaintext) {
+
+            assertEqualArrayBuffers(plaintext, originalMessage);
+
+        });*/
+
+    });
+});
+

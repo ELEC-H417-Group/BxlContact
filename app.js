@@ -4,7 +4,6 @@ var express = require('express');
 var path = require('path');
 var session = require('express-session');
 var logger = require('morgan');
-const uniqId = require('uniqid')
 
 let crypto;
 
@@ -30,6 +29,9 @@ const wss = new WebSocket.Server({
 
 // HashMap: {key:  userName, value: ws}
 const usersName = new Map()
+
+// preKeyBundle of each user
+const preKeyBundles = new Map()
 
 wss.on('connection', function connection(ws) {
     ws.on('message', function message(msg) {
@@ -60,11 +62,12 @@ function check(client, data) {
 //Send to all users wich user is connected.
 function sendAllUsers(client, data) {
     usersName.set(data.userName, client)
-    console.log(usersName)
+    preKeyBundles.set(data.userName, data.preKeyBundle)
     var dataNewUser = {
         type: 'users',
         userName: data.userName,
-        users: JSON.stringify(usersName, replacer)
+        users: JSON.stringify(usersName, replacer),
+        preKeys: JSON.stringify(preKeyBundles, replacer)
     }
     client.send(JSON.stringify(dataNewUser))
     broadcast(data.userName)
@@ -72,14 +75,13 @@ function sendAllUsers(client, data) {
 
 //send a message to a specific user
 function sendMessageTo(data) {
-    console.log(data.sendToUser)
-    var ws = usersName.get(data.sendToUser)
+    var ws = usersName.get(data.receiverId)
     if (ws == undefined) {
         console.log('userName undefined')
     } else {
         msg = {
             type: 'message',
-            userName: data.from,
+            userName: data.senderid,
             message: data.message
         }
         ws.send(JSON.stringify(msg))
