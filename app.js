@@ -40,7 +40,7 @@ wss.on('connection', function connection(ws) {
         }
       })
     })
-}
+})
 
 function check(client, data){
   switch (data.type){
