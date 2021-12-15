@@ -2,7 +2,7 @@ const WebSocket = require('ws')
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
-var cookieParser = require('cookie-parser');
+var session = require('express-session');
 var logger = require('morgan');
 const uniqId = require('uniqid')
 
@@ -11,35 +11,38 @@ let crypto;
 crypto = require('crypto');
 
 
+
 var indexRouter = require('./routes/index');
 
 var app = express();
+
+app.use(session({
+    secret: '@BXLBXLBXL@',
+    key: 'express_chapter6',
+    saveUninitialized: false,
+}));
 
 const server = app.listen(9876)
 const wss = new WebSocket.Server({
     server
 })
 
-/*
-add message
 
-*/
-// HashMap: {key: userId, value: [ws, userName]}
-const usersId = new Map()
+// HashMap: {key:  userName, value: ws}
+const usersName = new Map()
 
 wss.on('connection', function connection(ws) {
-  var userId = uniqId()
-
-  ws.on('message', function message(msg) {
-    wss.clients.forEach(function each(client) {
-      if (client == ws && client.readyState === WebSocket.OPEN) {
-        var data = JSON.parse(msg)
-        check(client, data, userId) 
-      }
+    ws.on('message', function message(msg) {
+      wss.clients.forEach(function each(client) {
+        if (client == ws && client.readyState === WebSocket.OPEN) {
+          var data = JSON.parse(msg)
+          check(client, data) 
+        }
+      })
     })
-  })
 })
 
+<<<<<<< HEAD
 /*function genereteUserId(){
   //Math.floor(Math.random() * 100)
   var userId = Date.now() % 1000
@@ -50,69 +53,73 @@ wss.on('connection', function connection(ws) {
 }*/
       
 function check(client, data, userId){
+=======
+function check(client, data){
+>>>>>>> userid
   switch (data.type){
     case 'users':
-        usersId.set(userId,[client, data.userName])
-        var dataNewUser = {
-            type: 'users',
-            userId: userId,
-            users: JSON.stringify(usersId,replacer)
-        }
-        client.send(JSON.stringify(dataNewUser))
-        broadcast(userId,data.userName)
+        sendAllUsers(client,data)
         break
     case 'message':
-        var ws = usersId.get(data.userId)
-        if (ws[0] == undefined){
-            console.log('userid undefined')
-        }
-        else{
-            ws[0].send(JSON.stringify(data))
-        }
+        sendMessageTo(data)
         break
     default:
       console.log(`Wrong expression`)
   }
 }
 
-//map to object
+//Send to all users wich user is connected.
+function sendAllUsers(client, data){
+  usersName.set(data.userName,client)
+  console.log(usersName)
+  var dataNewUser = {
+      type: 'users',
+      userName: data.userName,
+      users: JSON.stringify(usersName,replacer)
+  }
+  client.send(JSON.stringify(dataNewUser))
+  broadcast(data.userName)
+}
+
+//send a message to a specific user
+function sendMessageTo(data){
+  console.log(data.sendToUser)
+  var ws = usersName.get(data.sendToUser)
+  if (ws == undefined){
+      console.log('userName undefined')
+  }
+  else{
+      msg = {
+        type : 'message',
+        userName : data.sendToUser,
+        message: data.message
+      }
+      ws.send(JSON.stringify(msg))
+  }
+}
+
+//Map to object
 function replacer(key, value) {
-    if(value instanceof Map) {
-      return {
-        dataType: 'Map',
-        value: Array.from(value.entries()), // or with spread: value: [...value]
-      };
+    if (value instanceof Map) {
+        return {
+            dataType: 'Map',
+            value: Array.from(value.entries()), // or with spread: value: [...value]
+        };
     } else {
-      return value;
+        return value;
     }
-  }
+}
 
-/*
-function checkCredential(userName, password, userId){
-  cred = {
-    type: 'signin',
-    resp: 'false',
-    userId: userId,
-    userName: userName
-  }
-  
-  if (userName == "" && password == ""){
-      cred.resp = 'true'
-  }
-  return cred
-}*/
 
-/*BroadCast the new user to all users*/ 
-function broadcast(userId, userName){
-    for (const [key, value] of usersId.entries()) {
-        if(key != userId){
+//BroadCast the new user to all user
+function broadcast(userName){
+    for (const [key, value] of usersName.entries()) {
+        if(key != userName){
             data = {
-                type :'newUser',
-                userName: userName,
-                userId: userId
+                type: 'newUser',
+                userName: userName
               }
-            console.log(data)
-            value[0].send(JSON.stringify(data))
+            value.send(JSON.stringify(data))
         }
     }
 }
@@ -124,7 +131,6 @@ app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
@@ -132,6 +138,12 @@ app.use('/', indexRouter);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
     next(createError(404));
+});
+
+// make session a global var
+app.use(function(req, res, next) {
+    res.locals = req.session;
+    next();
 });
 
 // error handler
