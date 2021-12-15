@@ -1,21 +1,14 @@
-<<<<<<< HEAD
 //const { response } = require("../../app")
 
 
 
 //browserify public/javascripts/chatroom.js -o public/javascripts/bundle.js
-=======
->>>>>>> main
 serverUrl = 'ws://localhost:9876/server'
 const websocket = new WebSocket(serverUrl)
 
 const inputMessage = document.getElementById('message')
 const sendButton = document.getElementById('chat-message-submit')
 const dest = document.getElementById('dest')
-<<<<<<< HEAD
-=======
-    //contact.innerHTML = mainUser.userName
->>>>>>> main
 
 //contact.innerHTML = mainUser.userName
 
@@ -27,12 +20,7 @@ var mainUser = {
 var sendTo_ = mainUser.userName
 
 
-<<<<<<< HEAD
 sendButton.addEventListener('click',sendEvent, false);
-=======
-
-sendButton.addEventListener('click', sendEvent, false);
->>>>>>> main
 
 //on websocket open
 websocket.onopen = function() {
@@ -63,11 +51,7 @@ websocket.onmessage = function(event) {
                 break
                 //add new user
             case 'newUser':
-<<<<<<< HEAD
                 addContact(data.userName)
-=======
-                addContact(data.userId, data.userName)
->>>>>>> main
                 break
 
             default:
@@ -89,7 +73,6 @@ websocket.onerror = function(event) {
     messageAdd('<div class="message red">Connection to chat failed.</div>');
 }
 
-<<<<<<< HEAD
 function getUsers(data){
     sendTo_ = data.userName
     var users = JSON.parse(data.users, reviver);
@@ -99,18 +82,6 @@ function getUsers(data){
 }
 
 //Send a message to 'sendTo' when clicking on the button send
-=======
-function getUsers(data) {
-    mainUser.userId = data.userId
-    sendTo_ = data.userId
-    var users = JSON.parse(data.users, reviver);
-    console.log(users)
-    userButton(mainUser.userId, mainUser.userName)
-    addContacts(users)
-    addContact(mainUser.userId, mainUser.userName)
-}
-
->>>>>>> main
 function sendEvent() {
 
     var message = inputMessage.value;
@@ -118,19 +89,11 @@ function sendEvent() {
     if (message.toString().length) {
         var data = {
             type: 'message',
-<<<<<<< HEAD
             sendToUser:sendTo_,
             message: message
         }
         console.log(sendTo_)
         if(sendTo_ != undefined){
-=======
-            userId: sendTo_,
-            userName: mainUser.userName,
-            message: message
-        }
-        if (sendTo_ != undefined) {
->>>>>>> main
             websocket.send(JSON.stringify(data))
         } else {
             messageAdd('<div class="contact">No contact are choosen</div>')
@@ -149,13 +112,8 @@ function messageAdd(message) {
 function addContacts(users) {
 
     for (const [key, value] of users.entries()) {
-<<<<<<< HEAD
         if(key != mainUser.userName){
             addContact(key,value)
-=======
-        if (key != mainUser.userId) {
-            addContact(key, value[1])
->>>>>>> main
         }
     }
 }
@@ -171,7 +129,6 @@ function reviver(key, value) {
 }
 
 
-<<<<<<< HEAD
 //add a contact to the UI
 function addContact(userName){
     var contact = document.getElementById('contact');
@@ -190,25 +147,6 @@ function addContact(userName){
                     '<span class="intername">' + userName + '</span>' + 
                     '<span class="infor"></span>' + 
                 '</div>' +
-=======
-function addContact(userId, userName) {
-    var contact = document.getElementById('contact');
-    contact.insertAdjacentHTML('afterend', '<button id="' + userId + '">' + userName + '</button>')
-    var contactButton = document.getElementById(userId)
-    contactButton.addEventListener('click', function() {
-        dest.innerHTML = userName
-        sendTo_ = userId
-    }, false)
-    var friendListHTML = "";
-    friendListHTML +=
-        '<li>' +
-        '<div class="liLeft"><img src="/static/img/emoji/emoji_01.png"></div>' +
-        '<div class="liRight">' +
-        '<span class="hidden-userId">' + userId + '</span>' +
-        '<span class="intername">' + userName + '</span>' +
-        '<span class="infor"></span>' +
-        '</div>' +
->>>>>>> main
         '</li>';
 
     $('.conLeft ul').append(friendListHTML);
@@ -218,11 +156,7 @@ function addContact(userId, userName) {
 }
 
 
-<<<<<<< HEAD
 function userButton(userName){
-=======
-function userButton(userId, userName) {
->>>>>>> main
     dest.innerHTML = userName
     sendTo_ = userName
 }
