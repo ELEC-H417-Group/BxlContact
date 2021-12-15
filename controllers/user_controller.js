@@ -1,4 +1,5 @@
 var mysql = require('mysql');
+var wss = require('../app')
 var pool = mysql.createPool({
     host: '47.93.96.71',
     user: 'BxlContact',
@@ -68,8 +69,10 @@ exports.doLog = function(req, res) {
 
 
 exports.Logout = function(req, res) {
+    var username = req.session.username
     req.session.destroy();
     res.render('index', { tips: 'Please Log in !' })
+    wss.logoutUser(username)
 }
 
 var getName = (connection, callback) => {

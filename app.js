@@ -60,7 +60,6 @@ function check(client, data) {
 //Send to all users wich user is connected.
 function sendAllUsers(client, data) {
     usersName.set(data.userName, client)
-    console.log(usersName)
     var dataNewUser = {
         type: 'users',
         userName: data.userName,
@@ -68,6 +67,20 @@ function sendAllUsers(client, data) {
     }
     client.send(JSON.stringify(dataNewUser))
     broadcast(data.userName)
+}
+
+exports.logoutUser = (username) => {
+    console.log('注销里面的: ' + username)
+    usersName.delete(username)
+    for (const [key, value] of usersName.entries()) {
+        console.log('在线玩家： ' + key)
+        data = {
+            type: 'logout',
+            username: username
+        }
+        value.send(JSON.stringify(data))
+    }
+    return
 }
 
 //send a message to a specific user

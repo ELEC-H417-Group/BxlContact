@@ -54,7 +54,10 @@ websocket.onmessage = function(event) {
             case 'newUser':
                 addContact(data.userName)
                 break
-
+            case 'logout':
+                console.log('下线了！！！')
+                removeUser(data.username)
+                break
             default:
                 console.log(`Wrong expression`)
         }
@@ -103,6 +106,13 @@ function sendEvent() {
 
         message.value = ""
     }
+}
+
+function removeUser(username) {
+    console.log('remove!!!!')
+    const x = document.getElementById('username')
+    if (x != null) x.remove();
+    location.reload();
 }
 
 function messageAdd(message) {
