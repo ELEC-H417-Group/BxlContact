@@ -102,7 +102,6 @@ function broadcast(userName){
                 type :'newUser',
                 userName: userName,
               }
-            console.log(data)
             value.send(JSON.stringify(data))
         }
     }
