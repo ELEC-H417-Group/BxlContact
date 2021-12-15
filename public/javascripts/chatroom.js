@@ -101,7 +101,7 @@ function getUsers(data) {
     var preKeysBundles = JSON.parse(data.preKeys, reviver)
 
     addPreKeyBundles(preKeysBundles)
-
+    console.log(localStorageBundles)
 }
 
 
@@ -164,9 +164,9 @@ function userButton(userName) {
  * @param {SignalProtocolStore} store 
  */
 async function initialize(store){
-    generateIdentity(store)
+   await generateIdentity(store)
 
-    var preKeyBundle = generatePreKeyBundle(store,userName, prekeyBundle)
+    var preKeyBundle = await generatePreKeyBundle(store,userName, prekeyBundle)
 
     registerNewPreKeyBundle(userName, preKeyBundle)
 }
@@ -174,11 +174,12 @@ async function initialize(store){
  * Generates a new identity for the local user
  * @param {SignalProtocolStore} store 
  */
-function generateIdentity(store) {
+async function generateIdentity(store) {
     var results = Promise.all([
         KeyHelper.generateIdentityKeyPair(),
         KeyHelper.generateRegistrationId(),
     ])
+    console.log(results)
     store.put('identityKey', results[0]);
     store.put('registrationId', results[1]);
     
@@ -189,8 +190,8 @@ function generateIdentity(store) {
  * @param {SignalProtocolStore} store 
  * @returns A pre-key bundle
  */
-function generatePreKeyBundle(store) {
-    var result = Promise.all([
+async function generatePreKeyBundle(store) {
+    var result = await Promise.all([
         store.getIdentityKeyPair(),
         store.getLocalRegistrationId()
     ])
@@ -198,7 +199,7 @@ function generatePreKeyBundle(store) {
     var identity = result[0];
     var registrationId = result[1];
 
-    var keys = Promise.all([
+    var keys = await Promise.all([
         KeyHelper.generatePreKey(registrationId + 1),
         KeyHelper.generateSignedPreKey(identity, registrationId + 1),
     ])
@@ -260,7 +261,7 @@ function sendMsgEvent() {
 
     if (message.toString().length) {
 
-        encryptedMessage = encryptMessage(sendTo_, message)
+        encryptedMessage = await encryptMessage(sendTo_, message)
         var data = {
             type: 'message',
             receiverId: sendTo_,
@@ -293,7 +294,7 @@ function encryptMessage(remoteUserName, message){
 
     if (localSessionsCipher.has(remoteUserName)){
         var sessionCipher = localSessionsCipher.get(remoteUserName)
-        let ciphertext = sessionCipher.encrypt(message)
+        let ciphertext = await sessionCipher.encrypt(message)
         return ciphertext
     }
    
@@ -309,7 +310,7 @@ function encryptMessage(remoteUserName, message){
 
             localSessionsCipher.put(remoteUserName,sessionCipher)
 
-            let ciphertext = sessionCipher.encrypt(message)
+            let ciphertext = await sessionCipher.encrypt(message)
             
             return ciphertext
         })
@@ -329,11 +330,11 @@ function decryptMessage(remoteUserName, cipherText){
     var messageHasEmbeddedPreKeyBundle = cipherText.type == 3
 
     if(messageHasEmbeddedPreKeyBundle){
-        var decryptedMessage = sessionCipher.decryptPreKeyWhisperMessage(cipherText.body, 'binary')
+        var decryptedMessage = await sessionCipher.decryptPreKeyWhisperMessage(cipherText.body, 'binary')
         return util.toString(decryptedMessage)
     }
     else{
-        var decryptedMessage = sessionCipher.decryptWhisperMessage(cipherText.body, 'binary')
+        var decryptedMessage = await sessionCipher.decryptWhisperMessage(cipherText.body, 'binary')
         return util.toString(decryptedMessage)
     }
 }
