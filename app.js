@@ -62,10 +62,43 @@ function check(client, data) {
             sendMessageTo(data)
             break
         case 'getHistory':
+            sendHisResponse(data)
             break
         default:
             console.log(`Wrong expression`)
     }
+}
+
+
+const sendHisResponse = (data) => {
+
+    pool.getConnection((err, connection) => {
+        getHis(connection, data.from, data.to, (result) => {
+            var sortedResult = result.sort((a, b) => a.time > b.time ? 1 : -1)
+            var client = usersName.get(data.from)
+            var dataHis = {
+                type: 'getHistory',
+                content: sortedResult,
+            }
+            client.send(JSON.stringify(dataHis))
+        })
+    })
+}
+
+
+
+var getHis = (connection, from, to, callback) => {
+    var getHisSql = 'SELECT * FROM `content` WHERE (`from` = ? AND `to` = ?) OR (`from` = ? AND `to` = ?)';
+    var params = [from, to, to, from]
+    connection.query(getHisSql, params, function(err, result) {
+        if (err) {
+            console.log('[SELECT ERROR] - ', err.message);
+            return;
+        }
+        console.log(result)
+        connection.release()
+        callback(result)
+    });
 }
 
 //Send to all users wich user is connected.
@@ -81,10 +114,8 @@ function sendAllUsers(client, data) {
 }
 
 exports.logoutUser = (username) => {
-    console.log('注销里面的: ' + username)
     usersName.delete(username)
     for (const [key, value] of usersName.entries()) {
-        console.log('在线玩家： ' + key)
         data = {
             type: 'logout',
             username: username
@@ -146,6 +177,7 @@ var insertChat = (connection, from, to, content, callback) => {
     var addSql = 'INSERT INTO `content`(`from`,`to`,`content`,`time`) VALUES(?,?,?,?)';
     var time = new Date();
     var addSqlParams = [from, to, content, time];
+    console.log('出现了！' + addSqlParams)
     connection.query(addSql, addSqlParams, function(err, result) {
         if (err) {
             console.log('[INSERT ERROR] - ', err.message);

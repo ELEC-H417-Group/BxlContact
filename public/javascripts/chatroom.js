@@ -33,7 +33,7 @@ websocket.onopen = function() {
     websocket.send(JSON.stringify(data))
     console.log('connected')
 
-    messageAdd('<div class="message green">You have entered the chat room.</div>')
+    messageAdd('<div class="message green">You have entered the chat room. Please select a online user to chat!</div>')
 }
 
 //on message receive
@@ -44,11 +44,11 @@ websocket.onmessage = function(event) {
             //get existing users
             case 'users':
                 getUsers(data)
+                sendHistRequest(mainUser.userName, mainUser.userName)
                 break
                 //get message receive
             case 'message':
-                console.log('data.userName: ' + data.userName)
-                messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
+                messageOperation(data)
                 break
                 //add new user
             case 'newUser':
@@ -56,6 +56,9 @@ websocket.onmessage = function(event) {
                 break
             case 'logout':
                 removeUser(data.username)
+                break
+            case 'getHistory':
+                resolveHis(data.content)
                 break
             default:
                 console.log(`Wrong expression`)
@@ -76,6 +79,16 @@ websocket.onerror = function(event) {
     messageAdd('<div class="message red">Connection to chat failed.</div>');
 }
 
+// handle the message receiving
+const messageOperation = (data) => {
+    if (data.userName == sendTo_) {
+        messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
+    } else {
+        var contactButton = document.getElementById(data.userName)
+        contactButton.innerHTML = data.userName + ' (new message!)'
+    }
+}
+
 function getUsers(data) {
     sendTo_ = data.userName
     var users = JSON.parse(data.users, reviver);
@@ -88,6 +101,7 @@ function getUsers(data) {
 function sendEvent() {
 
     var message = inputMessage.value;
+    inputMessage.value = ' '
 
     if (message.toString().length) {
         var data = {
@@ -148,13 +162,50 @@ function addContact(userName) {
     contact.insertAdjacentHTML('afterend', '<button class="list-group-item" id="' + userName + '">' + userName + '</button>')
     var contactButton = document.getElementById(userName)
     contactButton.addEventListener('click', function() {
+        sendHistRequest(mainUser.userName, userName)
+        this.innerHTML = userName
         dest.innerHTML = userName
         sendTo_ = userName
     }, false)
 }
 
+// put History message to <div>
+const resolveHis = (result) => {
+    var contentList = []
+    for (var i = 0; i < result.length; i++) {
+        contentList.push('<div class="message">' + result[i].from + ': ' + result[i].content + '</div>')
+    }
+    const temp = contentList.toString()
+    var reg = new RegExp(/,/, "g")
+    var output = temp.replace(reg, ' ')
+    var box = document.getElementById("chat-message");
+    removeAllChild(box)
+    messageAdd(output);
+}
+
+function removeAllChild(node) {
+    while (node.hasChildNodes()) {
+        node.removeChild(node.firstChild);
+    }
+}
+
+const sendHistRequest = (from, to) => {
+    var data = {
+        type: 'getHistory',
+        from: from,
+        to: to,
+    }
+    websocket.send(JSON.stringify(data))
+}
 
 function userButton(userName) {
     dest.innerHTML = userName
     sendTo_ = userName
+}
+
+// listen the enter keyboard
+document.onkeydown = function(e) {
+    if (e.keyCode == 13) {
+        sendEvent()
+    }
 }

@@ -57,8 +57,10 @@ exports.doLog = function(req, res) {
                             req.session.username = username;
                         }
                         res.render('user/chatroom', { username: username })
+                        return
                     } else {
                         res.render('index', { tips: 'Wrong Password !' })
+                        return
                     }
                 }
             }
