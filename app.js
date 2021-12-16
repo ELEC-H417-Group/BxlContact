@@ -7,6 +7,15 @@ var logger = require('morgan');
 const uniqId = require('uniqid')
 
 // connect to mysql
+var mysql = require('mysql');
+var pool = mysql.createPool({
+    host: '47.93.96.71',
+    user: 'BxlContact',
+    password: '123456',
+    database: 'bxlcontact'
+});
+
+
 
 let crypto;
 
@@ -52,6 +61,8 @@ function check(client, data) {
         case 'message':
             sendMessageTo(data)
             break
+        case 'getHistory':
+            break
         default:
             console.log(`Wrong expression`)
     }
@@ -85,18 +96,23 @@ exports.logoutUser = (username) => {
 
 //send a message to a specific user
 function sendMessageTo(data) {
-    console.log(data.sendToUser)
-    var ws = usersName.get(data.sendToUser)
-    if (ws == undefined) {
-        console.log('userName undefined')
-    } else {
-        msg = {
-            type: 'message',
-            userName: data.from,
-            message: data.message
-        }
-        ws.send(JSON.stringify(msg))
-    }
+
+    pool.getConnection((err, connection) => {
+        insertChat(connection, data.from, data.sendToUser, data.message, () => {
+            var ws = usersName.get(data.sendToUser)
+            if (ws == undefined) {
+                console.log('userName undefined')
+            } else {
+                msg = {
+                    type: 'message',
+                    userName: data.from,
+                    message: data.message
+                }
+                ws.send(JSON.stringify(msg))
+            }
+        })
+    })
+
 }
 
 //Map to object
@@ -123,6 +139,25 @@ function broadcast(userName) {
             value.send(JSON.stringify(data))
         }
     }
+}
+
+
+var insertChat = (connection, from, to, content, callback) => {
+    var addSql = 'INSERT INTO `content`(`from`,`to`,`content`,`time`) VALUES(?,?,?,?)';
+    var time = new Date();
+    var addSqlParams = [from, to, content, time];
+    connection.query(addSql, addSqlParams, function(err, result) {
+        if (err) {
+            console.log('[INSERT ERROR] - ', err.message);
+            return;
+        }
+        console.log('--------------------------INSERT----------------------------');
+        //console.log('INSERT ID:',result.insertId);        
+        console.log('INSERT ID:', result);
+        console.log('-----------------------------------------------------------------\n\n');
+        connection.release();
+        callback()
+    });
 }
 
 // view engine setup

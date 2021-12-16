@@ -55,7 +55,6 @@ websocket.onmessage = function(event) {
                 addContact(data.userName)
                 break
             case 'logout':
-                console.log('下线了！！！')
                 removeUser(data.username)
                 break
             default:
