@@ -24,12 +24,37 @@
         <label class="sr-only" text="username"></label>
         <input name="username" type="text" class="form-control" placeholder="username" required="" autofocus="">
         <label class="sr-only" text="password"></label>
-        <input name="password" type="password" class="form-control" placeholder="password" required="">
-        <button class="btn btn-lg btn-primary btn-block" type="submit">login</button>
+        <input id="pwd" name="password" type="password" class="form-control" placeholder="password" required="">
+        <button class="btn btn-lg btn-primary btn-block" type="submit" id="login-submit">login</button>
         <a class="mt-5 mb-3 text" href="/sign" style="font-size: smaller;">Don't have an account? Sign in</a>
         <p class="mt-5 mb-3 text-muted">© 2021-2022</p>
     </form>
 
 </body>
+<script>
+    String.prototype.hashCode = function() {
+        if (Array.prototype.reduce) {
+            return this.split("").reduce(function(a, b) {
+                a = ((a << 5) - a) + b.charCodeAt(0);
+                return a & a
+            }, 0);
+        }
+        var hash = 0;
+        if (this.length === 0) return hash;
+        for (var i = 0; i < this.length; i++) {
+            var character = this.charCodeAt(i);
+            hash = ((hash << 5) - hash) + character;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return hash;
+    }
+    var challengeCode = '<%=challengeCode%>'
+    const sendEvent = () => {
+        const pwd = document.getElementById('pwd')
+        pwd.value = (pwd.value + challengeCode).hashCode()
+    }
+    const sendButton = document.getElementById('login-submit')
+    sendButton.addEventListener('click', sendEvent, false);
+</script>
 
 </html>

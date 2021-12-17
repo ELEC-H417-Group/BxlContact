@@ -7,6 +7,23 @@ var pool = mysql.createPool({
     database: 'bxlcontact'
 });
 
+String.prototype.hashCode = function() {
+    if (Array.prototype.reduce) {
+        return this.split("").reduce(function(a, b) {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a
+        }, 0);
+    }
+    var hash = 0;
+    if (this.length === 0) return hash;
+    for (var i = 0; i < this.length; i++) {
+        var character = this.charCodeAt(i);
+        hash = ((hash << 5) - hash) + character;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+}
+
 exports.showSign = function(req, res) {
     res.render('user/sign');
 }
@@ -30,8 +47,6 @@ exports.doSign = function(req, res) {
         })
     });
 
-
-
 }
 
 exports.showLogin = function(req, res) {
@@ -41,30 +56,39 @@ exports.showLogin = function(req, res) {
             username: username
         })
     }
-    res.render('index', { tips: 'Please Log in !' })
+    var challengeCode = getVerCode()
+    req.session.challengeCode = challengeCode
+    res.render('index', { tips: 'Please Log in !', challengeCode: challengeCode })
 }
 
 exports.doLog = function(req, res) {
     var username = req.body.username;
     var password = req.body.password;
-    // check data in database
+    console.log('收到的密码: ' + password)
+        // check data in database
     pool.getConnection((err, connection) => {
         getName(connection, (result) => {
             for (var i = 0; i < result.length; i++) {
                 if (result[i].username == username) {
-                    if (result[i].password == password) {
+                    var expectedPassword = (result[i].password + req.session.challengeCode).hashCode()
+                    console.log('想要的密码: ' + expectedPassword)
+                    if (expectedPassword == password) {
                         if (!req.session.username) {
                             req.session.username = username;
                         }
                         res.render('user/chatroom', { username: username })
                         return
                     } else {
-                        res.render('index', { tips: 'Wrong Password !' })
+                        var challengeCode = getVerCode()
+                        req.session.challengeCode = challengeCode
+                        res.render('index', { tips: 'Wrong Password !', challengeCode: challengeCode })
                         return
                     }
                 }
             }
-            res.render('index', { tips: 'Wrong Username !' })
+            var challengeCode = getVerCode()
+            req.session.challengeCode = challengeCode
+            res.render('index', { tips: 'Wrong Username !', challengeCode: challengeCode })
         })
     })
 }
@@ -73,8 +97,8 @@ exports.doLog = function(req, res) {
 exports.Logout = function(req, res) {
     var username = req.session.username
     req.session.destroy();
-    res.render('index', { tips: 'Please Log in !' })
     wss.logoutUser(username)
+    res.redirect('/')
 }
 
 var getName = (connection, callback) => {
@@ -105,4 +129,12 @@ var insertName = (connection, username, password, callback) => {
         connection.release();
         callback()
     });
+}
+
+const getVerCode = () => {
+    let verCode = Math.floor((Math.random() * 1000000) + 1);
+    if (verCode < 100000) {
+        return getVerCode();
+    }
+    return verCode;
 }
