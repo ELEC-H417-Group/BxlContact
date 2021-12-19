@@ -17,8 +17,8 @@
  //send to me by default
  var sendTo_ = mainUser.userName
 
- const prime = undefined
- const keys = undefined
+ var prime = undefined
+ var keys = undefined
  const usersPubKey = new Map()
 
  var OnlineList = []
@@ -119,7 +119,7 @@
 
  function getUsers(data) {
      sendTo_ = data.userName
-     prime = date.prime
+     prime = data.prime
      var users = JSON.parse(data.users, reviver);
      userButton(mainUser.userName)
      addContacts(users)
@@ -133,6 +133,7 @@
      inputMessage.value = ' '
 
      // if the secret mode is on
+
 
      if (message.toString().length) {
          var data = {

@@ -19,6 +19,10 @@ var pool = mysql.createPool({
 var serverKey = crypto.createDiffieHellman(512);
 var prime = serverKey.getPrime();
 
+console.log('PRIME NUMBER')
+console.log(prime)
+
+
 
 
 
