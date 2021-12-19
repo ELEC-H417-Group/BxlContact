@@ -123,6 +123,7 @@
                 if (modeBtn.value == 'Open Secret Mode') {
                     alert('On Secret Mode, the server may not store the message you send, which means no history message can be seen.')
                     modeBtn.value = 'Close Secret Mode'
+                        // send myself some info
                     secretMode = true
                 } else {
                     modeBtn.value = 'Open Secret Mode'
@@ -214,6 +215,8 @@
                 var message = inputMessage.value;
                 inputMessage.value = ' '
 
+                // if the secret mode is on
+
                 if (message.toString().length) {
                     var data = {
                         type: 'message',
@@ -273,6 +276,9 @@
                 var contactButton = document.getElementById(userName)
                 contactButton.addEventListener('click', function() {
                     sendHistRequest(mainUser.userName, userName)
+                    if (secretMode) {
+                        // do the dh procedure, exchange the key, save the key in local
+                    }
                     this.innerHTML = userName
                     dest.innerHTML = userName
                     sendTo_ = userName
