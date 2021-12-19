@@ -64,14 +64,12 @@ exports.showLogin = function(req, res) {
 exports.doLog = function(req, res) {
     var username = req.body.username;
     var password = req.body.password;
-    console.log('收到的密码: ' + password)
-        // check data in database
+    // check data in database
     pool.getConnection((err, connection) => {
         getName(connection, (result) => {
             for (var i = 0; i < result.length; i++) {
                 if (result[i].username == username) {
                     var expectedPassword = (result[i].password + req.session.challengeCode).hashCode()
-                    console.log('想要的密码: ' + expectedPassword)
                     if (expectedPassword == password) {
                         if (!req.session.username) {
                             req.session.username = username;

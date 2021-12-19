@@ -42,6 +42,7 @@
                     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                         <ul class="nav navbar-nav">
                             <li class="active"><a href="#">BxlContact<span class="sr-only">(current)</span></a></li>
+                            <input id='modeBtn' type="submit" style="margin-left: 20px;" class="btn btn-success navbar-btn" value="Open Secret Mode" />
                         </ul>
                         <form method="POST" action="/logout">
                             <input type="submit" class="btn btn-danger navbar-btn navbar-right" value="Exit" />
@@ -67,6 +68,7 @@
                         <div class="panel panel-success">
                             <div class="panel-heading" data-value=<%=username%> id="dest"> NO CONTACT
                             </div>
+
                             <div id="chat-message" class="panel-body" style="height: 350px; padding: 0px;overflow-y: auto; ">
                             </div>
                             <div class="panel-footer" style="padding: 0px">
@@ -74,6 +76,7 @@
                                 <div class="col-md-offset-11">
                                     <input id="chat-message-submit" class="btn btn-primary" type="button" value="Send" style="margin-top: 10px;margin-bottom: 10px; " />
                                 </div>
+
 
                             </div>
                         </div>
@@ -88,31 +91,237 @@
                 <a href="https://github.com/ELEC-H417-Group/BxlContact" style="color: #e3e3e3;" target="_blank">ELEC-H417-ULB</a>
             </div>
         </div>
+        <script>
+            // put in the remote server, need to be changed
+            serverUrl = 'ws://localhost:9876/server'
+            const websocket = new WebSocket(serverUrl)
 
-        <script src="/javascripts/chatroom.js"></script>
+            const inputMessage = document.getElementById('message')
+            const sendButton = document.getElementById('chat-message-submit')
+            const dest = document.getElementById('dest')
+            const modeBtn = document.getElementById('modeBtn')
+
+
+            var mainUser = {
+                userName: dest.getAttribute('data-value'),
+            }
+
+            //send to me by default
+            var sendTo_ = mainUser.userName
+
+            var OnlineList = []
+
+            sendButton.addEventListener('click', sendEvent, false);
+
+
+            // for the function secret 
+
+            // Update according to the information from the server
+            var secretMode = false
+
+            const changeMode = () => {
+                if (modeBtn.value == 'Open Secret Mode') {
+                    alert('On Secret Mode, the server may not store the message you send, which means no history message can be seen.')
+                    modeBtn.value = 'Close Secret Mode'
+                    secretMode = true
+                } else {
+                    modeBtn.value = 'Open Secret Mode'
+                    secretMode = false
+                }
+            }
+
+            modeBtn.addEventListener('click', changeMode, false)
+
+
+
+            //on websocket open
+            websocket.onopen = function() {
+
+                data = {
+                    type: 'users',
+                    userName: mainUser.userName
+                }
+                websocket.send(JSON.stringify(data))
+                console.log('connected')
+
+                messageAdd('<div class="message green">You have entered the chat room. Please select a online user to chat!</div>')
+            }
+
+            //on message receive
+            websocket.onmessage = function(event) {
+                try {
+                    var data = JSON.parse(event.data)
+                    switch (data.type) {
+                        //get existing users
+                        case 'users':
+                            getUsers(data)
+                            sendHistRequest(mainUser.userName, mainUser.userName)
+                            break
+                            //get message receive
+                        case 'message':
+                            messageOperation(data)
+                            break
+                            //add new user
+                        case 'newUser':
+                            addContact(data.userName)
+                            break
+                        case 'logout':
+                            removeUser(data.username)
+                            break
+                        case 'getHistory':
+                            resolveHis(data.content)
+                            break
+                        default:
+                            console.log(`Wrong expression`)
+                    }
+                } catch (error) {
+                    console.log(error)
+                }
+
+            }
+
+            //on websocket close
+            websocket.onclose = function(event) {
+                messageAdd('<div class="message blue">You have been disconnected.</div>');
+            }
+
+            //on websocket error
+            websocket.onerror = function(event) {
+                messageAdd('<div class="message red">Connection to chat failed.</div>');
+            }
+
+            // handle the message receiving
+            const messageOperation = (data) => {
+                if (data.userName == sendTo_) {
+                    messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
+                } else {
+                    var contactButton = document.getElementById(data.userName)
+                    contactButton.innerHTML = data.userName + ' (new message!)'
+                }
+            }
+
+            function getUsers(data) {
+                sendTo_ = data.userName
+                var users = JSON.parse(data.users, reviver);
+                userButton(mainUser.userName)
+                addContacts(users)
+                addContact(mainUser.userName)
+            }
+
+            //Send a message to 'sendTo' when clicking on the button send
+            function sendEvent() {
+
+                var message = inputMessage.value;
+                inputMessage.value = ' '
+
+                if (message.toString().length) {
+                    var data = {
+                        type: 'message',
+                        sendToUser: sendTo_,
+                        from: mainUser.userName,
+                        message: message
+                    }
+                    if (sendTo_ != mainUser.userName) {
+                        messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
+                        websocket.send(JSON.stringify(data))
+                    } else {
+                        websocket.send(JSON.stringify(data))
+                    }
+
+                    message.value = ""
+                }
+            }
+
+            function removeUser(username) {
+                console.log('remove!!!!')
+                const x = document.getElementById('username')
+                if (x != null) x.remove();
+                location.reload();
+            }
+
+            function messageAdd(message) {
+                var chatMessage = document.getElementById('chat-message');
+                chatMessage.insertAdjacentHTML("beforeend", message);
+            }
+
+            function addContacts(users) {
+
+                for (const [key, value] of users.entries()) {
+                    if (key != mainUser.userName) {
+                        addContact(key, value)
+                    }
+                }
+            }
+
+            //Object to Map 
+            function reviver(key, value) {
+                if (typeof value === 'object' && value !== null) {
+                    if (value.dataType === 'Map') {
+                        return new Map(value.value);
+                    }
+                }
+                return value;
+            }
+
+
+            //add a contact to the UI
+            function addContact(userName) {
+                if (OnlineList.includes(userName)) return
+                OnlineList.push(userName)
+                var contact = document.getElementById('contact');
+                contact.insertAdjacentHTML('afterend', '<button class="list-group-item" id="' + userName + '">' + userName + '</button>')
+                var contactButton = document.getElementById(userName)
+                contactButton.addEventListener('click', function() {
+                    sendHistRequest(mainUser.userName, userName)
+                    this.innerHTML = userName
+                    dest.innerHTML = userName
+                    sendTo_ = userName
+                }, false)
+            }
+
+            // put History message to <div>
+            const resolveHis = (result) => {
+                var contentList = []
+                for (var i = 0; i < result.length; i++) {
+                    contentList.push('<div class="message">' + result[i].from + ': ' + result[i].content + '</div>')
+                }
+                const temp = contentList.toString()
+                var reg = new RegExp(/,/, "g")
+                var output = temp.replace(reg, ' ')
+                var box = document.getElementById("chat-message");
+                removeAllChild(box)
+                messageAdd(output);
+            }
+
+            function removeAllChild(node) {
+                while (node.hasChildNodes()) {
+                    node.removeChild(node.firstChild);
+                }
+            }
+
+            const sendHistRequest = (from, to) => {
+                var data = {
+                    type: 'getHistory',
+                    from: from,
+                    to: to,
+                }
+                websocket.send(JSON.stringify(data))
+            }
+
+            function userButton(userName) {
+                dest.innerHTML = userName
+                sendTo_ = userName
+            }
+
+            // listen the enter keyboard
+            document.onkeydown = function(e) {
+                if (e.keyCode == 13) {
+                    sendEvent()
+                }
+            }
+        </script>
         <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
     </body>
-
-    <!-- <body>
-
-    <div class="leftside" id="chat">
-        <div id="dest" data-value=<%=username%>> NO CONTACT </div>
-                    <div id="chat-message"> </div>
-                    <input id="message" />
-                    <button id="send">Send Messages</button>
-                    </div>
-
-
-                    <script src="/javascripts/chatroom.js"></script>
-
-                    <div class="rightside" id="contact">
-                        <div id="contact"> </div>
-
-                    </div>
-
-
-
-    </body> -->
 
 </html>
