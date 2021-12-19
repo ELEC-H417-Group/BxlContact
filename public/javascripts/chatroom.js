@@ -2,6 +2,8 @@
  serverUrl = 'ws://localhost:9876/server'
  const websocket = new WebSocket(serverUrl)
 
+ const crypto = require('crypto');
+
  const inputMessage = document.getElementById('message')
  const sendButton = document.getElementById('chat-message-submit')
  const dest = document.getElementById('dest')
@@ -15,6 +17,10 @@
  //send to me by default
  var sendTo_ = mainUser.userName
 
+ const prime = undefined
+ const keys = undefined
+ const usersPubKey = new Map()
+
  var OnlineList = []
 
  sendButton.addEventListener('click', sendEvent, false);
@@ -27,10 +33,10 @@
 
  const changeMode = () => {
      if (modeBtn.value == 'Open Secret Mode') {
-         alert('On Secret Mode, the server may not store the message you send, which means no history message can be seen.')
-         modeBtn.value = 'Close Secret Mode'
-             // send myself some info
-         secretMode = true
+        alert('On Secret Mode, the server may not store the message you send, which means no history message can be seen.')
+        modeBtn.value = 'Close Secret Mode'
+        secretMode = true
+
      } else {
          modeBtn.value = 'Open Secret Mode'
          secretMode = false
@@ -43,10 +49,9 @@
 
  //on websocket open
  websocket.onopen = function() {
-
      data = {
          type: 'users',
-         userName: mainUser.userName
+         userName: mainUser.userName,
      }
      websocket.send(JSON.stringify(data))
      console.log('connected')
@@ -59,27 +64,32 @@
      try {
          var data = JSON.parse(event.data)
          switch (data.type) {
-             //get existing users
-             case 'users':
-                 getUsers(data)
-                 sendHistRequest(mainUser.userName, mainUser.userName)
-                 break
-                 //get message receive
-             case 'message':
-                 messageOperation(data)
-                 break
-                 //add new user
-             case 'newUser':
-                 addContact(data.userName)
-                 break
-             case 'logout':
-                 removeUser(data.username)
-                 break
-             case 'getHistory':
-                 resolveHis(data.content)
-                 break
-             default:
-                 console.log(`Wrong expression`)
+             //get existing users with their keys
+            case 'users':
+                getUsers(data)
+                sendHistRequest(mainUser.userName, mainUser.userName)
+                sendPubKey()
+                addPubKeys(data.usersPubKey)
+                break
+            //get message receive
+            case 'message':
+                messageOperation(data)
+                break
+            //add new user
+            case 'newUser':
+                addContact(data.userName)
+                break
+            case 'newPubKey':
+                addPubKey(data.userName,data.pubKey)
+                break
+            case 'logout':
+                removeUser(data.username)
+                break
+            case 'getHistory':
+                resolveHis(data.content)
+                break
+            default:
+                console.log(`Wrong expression`)
          }
      } catch (error) {
          console.log(error)
@@ -109,6 +119,7 @@
 
  function getUsers(data) {
      sendTo_ = data.userName
+     prime = date.prime
      var users = JSON.parse(data.users, reviver);
      userButton(mainUser.userName)
      addContacts(users)
@@ -189,6 +200,28 @@
          dest.innerHTML = userName
          sendTo_ = userName
      }, false)
+ }
+
+ function sendPubKey(){
+    keys = crypto.createDiffieHellman(prime);
+    data = {
+        type: 'pubKey',
+        userName: mainUser.userName,
+        pubKey : keys.getPublicKey()
+    }
+    websocket.send(JSON.stringify(data))
+ }
+
+ function addPubKeys(data){
+    var pubKeys = JSON.parse(data.usersPubKey, reviver)
+    for (const [key, value] of pubKeys.entries()) {
+        if (key != mainUser.userName) {
+            addKey(key,value)
+        }
+    }
+ }
+ function addPubKey(userName, pubKey){
+     usersPubKey.set(userName,pubKey)
  }
 
  // put History message to <div>

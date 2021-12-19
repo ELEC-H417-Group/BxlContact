@@ -4,7 +4,7 @@ var express = require('express');
 var path = require('path');
 var session = require('express-session');
 var logger = require('morgan');
-const uniqId = require('uniqid')
+var crypto = require("crypto");
 
 // connect to mysql
 var mysql = require('mysql');
@@ -15,11 +15,10 @@ var pool = mysql.createPool({
     database: 'bxlcontact'
 });
 
+// the prime will be share to everyone                                              
+var serverKey = crypto.createDiffieHellman(512);
+var prime = serverKey.getPrime();
 
-
-let crypto;
-
-crypto = require('crypto');
 
 
 
@@ -42,6 +41,9 @@ const wss = new WebSocket.Server({
 // HashMap: {key:  userName, value: ws}
 const usersName = new Map()
 
+// HashMap: {key: userName, value: pubKey}
+const usersPubKey = new Map()
+
 wss.on('connection', function connection(ws) {
     ws.on('message', function message(msg) {
         wss.clients.forEach(function each(client) {
@@ -57,6 +59,9 @@ function check(client, data) {
     switch (data.type) {
         case 'users':
             sendAllUsers(client, data)
+            break
+        case 'pubKey':
+            broadcastNewPubKey(data)
             break
         case 'message':
             sendMessageTo(data)
@@ -107,14 +112,31 @@ function sendAllUsers(client, data) {
     var dataNewUser = {
         type: 'users',
         userName: data.userName,
+        prime:prime,
+        usersPubKey: JSON.stringify(usersPubKey,replacer),
         users: JSON.stringify(usersName, replacer)
     }
     client.send(JSON.stringify(dataNewUser))
     broadcast(data.userName)
 }
 
+function broadcastNewPubKey(data){
+    usersPubKey.set(data.userName,data.pubKey)
+    for (const [key, value] of usersName.entries()) {
+        if (key != userName) {
+            msg = {
+                type: 'newPubKey',
+                userName: data.userName,
+                pubKey: data.pubKey
+            }
+            value.send(JSON.stringify(msg))
+        }
+    }
+}
+
 exports.logoutUser = (username) => {
     usersName.delete(username)
+    usersPubKey.delete(username)
     for (const [key, value] of usersName.entries()) {
         data = {
             type: 'logout',
@@ -127,7 +149,6 @@ exports.logoutUser = (username) => {
 
 //send a message to a specific user
 function sendMessageTo(data) {
-
     pool.getConnection((err, connection) => {
         insertChat(connection, data.from, data.sendToUser, data.message, () => {
             var ws = usersName.get(data.sendToUser)
