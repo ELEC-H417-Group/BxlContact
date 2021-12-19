@@ -284,6 +284,8 @@
  }
  function addPubKey(userName, pubKey){
      secretKey = keys.computeSecret(pubKey)
+     console.log("SECRET KEY")
+     console.log(secretKey)
      usersPubKey.set(userName,secretKey)
  }
 
