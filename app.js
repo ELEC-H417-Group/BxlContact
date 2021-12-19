@@ -70,6 +70,9 @@ function check(client, data) {
         case 'message':
             sendMessageTo(data)
             break
+        case 'encryptedMessage':
+            sendEncryptMsg(data)
+            break
         case 'getHistory':
             sendHisResponse(data)
             break
@@ -93,7 +96,6 @@ const sendHisResponse = (data) => {
         })
     })
 }
-
 
 
 var getHis = (connection, from, to, callback) => {
@@ -122,6 +124,20 @@ function sendAllUsers(client, data) {
     }
     client.send(JSON.stringify(dataNewUser))
     broadcast(data.userName)
+}
+
+function sendEncryptMsg(data){
+    var ws = usersName.get(data.sendToUser)
+    if (ws == undefined) {
+        console.log('userName undefined')
+    } else {
+        msg = {
+            type: 'encryptedMessage',
+            userName: data.from,
+            message: data.message
+        }
+        ws.send(JSON.stringify(msg))
+    }
 }
 
 function broadcastNewPubKey(data){
