@@ -3,13 +3,26 @@
  const websocket = new WebSocket(serverUrl)
 
  const crypto = require('crypto');
- const cryptoJs = require("crypto-js");
 
  const inputMessage = document.getElementById('message')
  const sendButton = document.getElementById('chat-message-submit')
  const dest = document.getElementById('dest')
  const modeBtn = document.getElementById('modeBtn')
 
+
+ function aesEncrypt(data, key) {
+     const cipher = crypto.createCipher('aes192', key);
+     var crypted = cipher.update(data, 'utf8', 'hex');
+     crypted += cipher.final('hex');
+     return crypted;
+ }
+
+ function aesDecrypt(encrypted, key) {
+     const decipher = crypto.createDecipher('aes192', key);
+     var decrypted = decipher.update(encrypted, 'hex', 'utf8');
+     decrypted += decipher.final('utf8');
+     return decrypted;
+ }
 
  var mainUser = {
      userName: dest.getAttribute('data-value'),
@@ -19,8 +32,9 @@
  var sendTo_ = mainUser.userName
 
  var prime = undefined
+ var generator = undefined
  var keys = undefined
- const usersPubKey = new Map()
+ var usersPubKey = new Map()
  var oldMessage = undefined
 
  var OnlineList = []
@@ -35,9 +49,9 @@
 
  const changeMode = () => {
      if (modeBtn.value == 'Open Secret Mode') {
-        alert('On Secret Mode, the server may not store the message you send, which means no history message can be seen.')
-        modeBtn.value = 'Close Secret Mode'
-        secretMode = true
+         alert('On Secret Mode, the server may not store the message you send, which means no history message can be seen.')
+         modeBtn.value = 'Close Secret Mode'
+         secretMode = true
 
      } else {
          modeBtn.value = 'Open Secret Mode'
@@ -67,34 +81,36 @@
          var data = JSON.parse(event.data)
          switch (data.type) {
              //get existing users with their keys
-            case 'users':
-                getUsers(data)
-                sendHistRequest(mainUser.userName, mainUser.userName)
-                sendPubKey()
-                addPubKeys(data.usersPubKey)
-                break
-            //get message receive
-            case 'message':
-                messageOperation(data)
-                break
-            case 'encryptedMessage':
-                decrypMessage(data)
-                break
-            //add new user
-            case 'newUser':
-                addContact(data.userName)
-                break
-            case 'newPubKey':
-                addPubKey(data.userName,data.pubKey)
-                break
-            case 'logout':
-                removeUser(data.username)
-                break
-            case 'getHistory':
-                resolveHis(data.content)
-                break
-            default:
-                console.log(`Wrong expression`)
+             case 'users':
+                 getUsers(data)
+                 sendHistRequest(mainUser.userName, mainUser.userName)
+                 sendPubKey()
+                 addPubKeys(data.usersPubKey)
+                 break
+                 //get message receive
+             case 'message':
+                 messageOperation(data)
+                 break
+             case 'encryptedMessage':
+                 decrypMessage(data)
+                 break
+                 //add new user
+             case 'newUser':
+                 addContact(data.userName)
+                 break
+             case 'newPubKey':
+                 console.log('new PubKey!!')
+                 console.log(data)
+                 addPubKey(data.userName, data.pubKey)
+                 break
+             case 'logout':
+                 removeUser(data.username)
+                 break
+             case 'getHistory':
+                 resolveHis(data.content)
+                 break
+             default:
+                 console.log(`Wrong expression`)
          }
      } catch (error) {
          console.log(error)
@@ -114,55 +130,34 @@
 
  // handle the message receiving
  const messageOperation = (data) => {
-    if(secretMode){
-        if (data.userName == sendTo_) {
-            if(mainUser.userName == data.userName){
-                messageAdd('<div class="message">' + '(in secure mode) '+data.userName + ': ' + oldMessage + '</div>');
-            }
-            else{
-                secretKey = usersPubKey.get(data.userName)
-                var decr = cryptoJs.AES.decrypt(data, secretKey);
-                decr = decr.toString(cryptoJs.enc.Utf8);
-                messageAdd('<div class="message">' + '(in secure mode) '+data.userName + ': ' + decr + '</div>');
-            }
-        } 
-        else{
-            var contactButton = document.getElementById(data.userName)
-            contactButton.innerHTML = data.userName + ' (new encrypt message!)'
-        }
-    }
-    else{
-        if (data.userName == sendTo_) {
-            messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
-        } else {
-            var contactButton = document.getElementById(data.userName)
-            contactButton.innerHTML = data.userName + ' (new message!)'
-        }
-    }
+     if (data.userName == sendTo_) {
+         messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
+     } else {
+         var contactButton = document.getElementById(data.userName)
+         contactButton.innerHTML = data.userName + ' (new message!)'
+     }
  }
 
  //decryptMessage
- function decrypMessage(data){
-    if (data.userName == sendTo_) {
-        if(mainUser.userName == data.userName){
-            messageAdd('<div class="message">' + '(in secure mode) '+data.userName + ': ' + oldMessage + '</div>');
-        }
-        else{
-            secretKey = usersPubKey.get(data.userName)
-            var decr = cryptoJs.AES.decrypt(data, secretKey);
-            decr = decr.toString(cryptoJs.enc.Utf8);
-            messageAdd('<div class="message">' + '(in secure mode) '+data.userName + ': ' + decr + '</div>');
-        }
-    } 
-    else{
-        var contactButton = document.getElementById(data.userName)
-        contactButton.innerHTML = data.userName + ' (new encrypt message!)'
-    }
+ function decrypMessage(data) {
+     if (data.userName == sendTo_) {
+         if (mainUser.userName == data.userName) {
+             messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + oldMessage + '</div>');
+         } else {
+             secretKey = usersPubKey.get(data.userName)
+             var decr = aesDecrypt(data, secretKey);
+             messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + decr + '</div>');
+         }
+     } else {
+         var contactButton = document.getElementById(data.userName)
+         contactButton.innerHTML = data.userName + ' (new encrypt message!)'
+     }
  }
 
  function getUsers(data) {
      sendTo_ = data.userName
      prime = data.prime
+     generator = data.generator
      var users = JSON.parse(data.users, reviver);
      userButton(mainUser.userName)
      addContacts(users)
@@ -176,26 +171,27 @@
      inputMessage.value = ' '
 
      //encrypted mode
-     if(secretMode){
-        secretKey = usersPubKey.get(sendTo_)
-        oldMessage = message
-        var data = {
-            type: 'encryptedMessage',
-            sendToUser: sendTo_,
-            from: mainUser.userName,
-            message: cryptoJs.AES.encrypt(message,secretKey)
-        }
-        if (sendTo_ != mainUser.userName) {
-            messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
-            websocket.send(JSON.stringify(data))
-        } else {
-            websocket.send(JSON.stringify(data))
-        }
+     if (secretMode) {
+         secretKey = usersPubKey.get(sendTo_)
+         console.log(usersPubKey)
+         oldMessage = message
+         var data = {
+             type: 'encryptedMessage',
+             sendToUser: sendTo_,
+             from: mainUser.userName,
+             message: aesEncrypt(message, secretKey)
+         }
+         if (sendTo_ != mainUser.userName) {
+             messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
+             websocket.send(JSON.stringify(data))
+         } else {
+             websocket.send(JSON.stringify(data))
+         }
 
-        message.value = ""
+         message.value = ""
      }
      //no encrypted mode
-     else{ 
+     else {
          var data = {
              type: 'message',
              sendToUser: sendTo_,
@@ -264,29 +260,30 @@
      }, false)
  }
 
- function sendPubKey(){
-    keys = crypto.createDiffieHellman(prime);
-    data = {
-        type: 'pubKey',
-        userName: mainUser.userName,
-        pubKey : keys.getPublicKey()
-    }
-    websocket.send(JSON.stringify(data))
+ function sendPubKey() {
+     keys = crypto.createDiffieHellman(prime, generator).generateKeys();
+     data = {
+         type: 'pubKey',
+         userName: mainUser.userName,
+         pubKey: keys
+     }
+     usersPubKey.set(mainUser.userName, keys)
+     websocket.send(JSON.stringify(data))
  }
 
- function addPubKeys(data){
-    var pubKeys = JSON.parse(data.usersPubKey, reviver)
-    for (const [key, value] of pubKeys.entries()) {
-        if (key != mainUser.userName) {
-            addKey(key,value)
-        }
-    }
+ function addPubKeys(data) {
+     var pubKeys = JSON.parse(data.usersPubKey, reviver)
+     for (const [key, value] of pubKeys.entries()) {
+         if (key != mainUser.userName) {
+             addKey(key, value)
+         }
+     }
  }
- function addPubKey(userName, pubKey){
+
+ function addPubKey(userName, pubKey) {
      secretKey = keys.computeSecret(pubKey)
-     console.log("SECRET KEY")
-     console.log(secretKey)
-     usersPubKey.set(userName,secretKey)
+     console.log("SECRET KEY: " + secretKey)
+     usersPubKey.set(userName, secretKey)
  }
 
  // put History message to <div>

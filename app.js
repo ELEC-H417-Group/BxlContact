@@ -18,6 +18,7 @@ var pool = mysql.createPool({
 // the prime will be share to everyone                                              
 var serverKey = crypto.createDiffieHellman(512);
 var prime = serverKey.getPrime();
+var generator = serverKey.getGenerator()
 
 console.log('PRIME NUMBER')
 console.log(prime)
@@ -118,15 +119,16 @@ function sendAllUsers(client, data) {
     var dataNewUser = {
         type: 'users',
         userName: data.userName,
-        prime:prime,
-        usersPubKey: JSON.stringify(usersPubKey,replacer),
+        prime: prime,
+        generator: generator,
+        usersPubKey: JSON.stringify(usersPubKey, replacer),
         users: JSON.stringify(usersName, replacer)
     }
     client.send(JSON.stringify(dataNewUser))
     broadcast(data.userName)
 }
 
-function sendEncryptMsg(data){
+function sendEncryptMsg(data) {
     var ws = usersName.get(data.sendToUser)
     if (ws == undefined) {
         console.log('userName undefined')
@@ -140,10 +142,10 @@ function sendEncryptMsg(data){
     }
 }
 
-function broadcastNewPubKey(data){
-    usersPubKey.set(data.userName,data.pubKey)
+function broadcastNewPubKey(data) {
+    usersPubKey.set(data.userName, data.pubKey)
     for (const [key, value] of usersName.entries()) {
-        if (key != userName) {
+        if (key != data.userName) {
             msg = {
                 type: 'newPubKey',
                 userName: data.userName,
