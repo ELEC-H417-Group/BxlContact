@@ -3,6 +3,7 @@
  const websocket = new WebSocket(serverUrl)
 
  const crypto = require('crypto');
+ var Buffer = require('buffer').Buffer;
 
  const inputMessage = document.getElementById('message')
  const sendButton = document.getElementById('chat-message-submit')
@@ -146,10 +147,10 @@
              messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + oldMessage + '</div>');
          } else {
              console.log('DECRYPTION')
-             
              secretKey = usersPubKey.get(data.userName)
              console.log(secretKey)
-             var decr = aesDecrypt(data, secretKey);
+             var x = secretKey.buffer
+             var decr = aesDecrypt(data.message, x);
              messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + decr + '</div>');
          }
      } else {
@@ -186,7 +187,7 @@
              message: aesEncrypt(message, secretKey)
          }
          if (sendTo_ != mainUser.userName) {
-             messageAdd('<div class="message">'+'(secret mode) ' + mainUser.userName + ': ' + message + '</div>');
+             messageAdd('<div class="message">' + '(secret mode) ' + mainUser.userName + ': ' + message + '</div>');
              websocket.send(JSON.stringify(data))
          } else {
              websocket.send(JSON.stringify(data))
@@ -270,9 +271,9 @@
      data = {
          type: 'pubKey',
          userName: mainUser.userName,
-         clientKey:clientKey
+         clientKey: clientKey
      }
-     addPubKey(mainUser.userName,clientKey)
+     addPubKey(mainUser.userName, clientKey)
      websocket.send(JSON.stringify(data))
  }
 
@@ -282,20 +283,20 @@
      console.log(pubKeys)
      for (const [key, value] of pubKeys.entries()) {
          if (key != mainUser.userName) {
-            console.log('TRY TO ADD')
+             console.log('TRY TO ADD')
              console.log(key)
              console.log(value)
              addPubKey(key, value)
-             
+
              console.log('KEY ADDED')
-             
+
          }
      }
  }
 
  function addPubKey(userName, pubKey) {
      secretKey = client.computeSecret(pubKey.data)
-     
+
      console.log("SECRET KEY: " + secretKey)
      usersPubKey.set(userName, secretKey)
  }

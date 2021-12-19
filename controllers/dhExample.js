@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 
+var Buffer = require('buffer').Buffer;
 
 function aesEncrypt(data, key) {
     const cipher = crypto.createCipher('aes192', key);
@@ -39,6 +40,8 @@ console.log('Secret of Xiao Ming: ' + alice_secret.toString('hex'));
 console.log('Secret of Xiao Hong: ' + bob_secret.toString('hex'));
 
 
+console.log(alice_secret.t)
+console.log(alice_secret)
 var data = 'Hello, this is a secret message!';
 var encrypted = aesEncrypt(data, alice_secret);
 var decrypted = aesDecrypt(encrypted, alice_secret);
