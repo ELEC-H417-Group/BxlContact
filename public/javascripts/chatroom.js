@@ -33,7 +33,8 @@
 
  var prime = undefined
  var generator = undefined
- var keys = undefined
+ var client = undefined
+ var clientKey = undefined
  var usersPubKey = new Map()
  var oldMessage = undefined
 
@@ -85,7 +86,7 @@
                  getUsers(data)
                  sendHistRequest(mainUser.userName, mainUser.userName)
                  sendPubKey()
-                 addPubKeys(data.usersPubKey)
+                 addPubKeys(data)
                  break
                  //get message receive
              case 'message':
@@ -144,7 +145,10 @@
          if (mainUser.userName == data.userName) {
              messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + oldMessage + '</div>');
          } else {
+             console.log('DECRYPTION')
+             
              secretKey = usersPubKey.get(data.userName)
+             console.log(secretKey)
              var decr = aesDecrypt(data, secretKey);
              messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + decr + '</div>');
          }
@@ -182,7 +186,7 @@
              message: aesEncrypt(message, secretKey)
          }
          if (sendTo_ != mainUser.userName) {
-             messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
+             messageAdd('<div class="message">'+'(secret mode) ' + mainUser.userName + ': ' + message + '</div>');
              websocket.send(JSON.stringify(data))
          } else {
              websocket.send(JSON.stringify(data))
@@ -261,27 +265,37 @@
  }
 
  function sendPubKey() {
-     keys = crypto.createDiffieHellman(prime, generator).generateKeys();
+     client = crypto.createDiffieHellman(prime, generator)
+     clientKey = client.generateKeys()
      data = {
          type: 'pubKey',
          userName: mainUser.userName,
-         pubKey: keys
+         clientKey:clientKey
      }
-     usersPubKey.set(mainUser.userName, keys)
+     addPubKey(mainUser.userName,clientKey)
      websocket.send(JSON.stringify(data))
  }
 
  function addPubKeys(data) {
      var pubKeys = JSON.parse(data.usersPubKey, reviver)
+     console.log('ADD PUB KEYS')
+     console.log(pubKeys)
      for (const [key, value] of pubKeys.entries()) {
          if (key != mainUser.userName) {
-             addKey(key, value)
+            console.log('TRY TO ADD')
+             console.log(key)
+             console.log(value)
+             addPubKey(key, value)
+             
+             console.log('KEY ADDED')
+             
          }
      }
  }
 
  function addPubKey(userName, pubKey) {
-     secretKey = keys.computeSecret(pubKey)
+     secretKey = client.computeSecret(pubKey.data)
+     
      console.log("SECRET KEY: " + secretKey)
      usersPubKey.set(userName, secretKey)
  }

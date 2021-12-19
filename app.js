@@ -143,13 +143,17 @@ function sendEncryptMsg(data) {
 }
 
 function broadcastNewPubKey(data) {
-    usersPubKey.set(data.userName, data.pubKey)
+    usersPubKey.set(data.userName, data.clientKey)
+    console.log('USERS PUBLIC KEY')
+    console.log(usersPubKey)
+    console.log('PUB KEY DAT')
+    console.log(data)
     for (const [key, value] of usersName.entries()) {
         if (key != data.userName) {
             msg = {
                 type: 'newPubKey',
                 userName: data.userName,
-                pubKey: data.pubKey
+                pubKey: data.clientKey
             }
             value.send(JSON.stringify(msg))
         }
