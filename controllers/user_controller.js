@@ -1,5 +1,22 @@
 var mysql = require('mysql');
 var wss = require('../app')
+const crypto = require('crypto');
+
+const pwdKey = 'Password!'
+
+function aesEncrypt(data, key) {
+    const cipher = crypto.createCipher('aes192', key);
+    var crypted = cipher.update(data, 'utf8', 'hex');
+    crypted += cipher.final('hex');
+    return crypted;
+}
+
+function aesDecrypt(encrypted, key) {
+    const decipher = crypto.createDecipher('aes192', key);
+    var decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+}
 var pool = mysql.createPool({
     host: '47.93.96.71',
     user: 'BxlContact',
@@ -69,7 +86,9 @@ exports.doLog = function(req, res) {
         getName(connection, (result) => {
             for (var i = 0; i < result.length; i++) {
                 if (result[i].username == username) {
-                    var expectedPassword = (result[i].password + req.session.challengeCode).hashCode()
+                    var Decrypt = aesDecrypt(result[i].password, pwdKey)
+                    console.log('期望的： ' + Decrypt)
+                    var expectedPassword = (Decrypt + req.session.challengeCode).hashCode()
                     if (expectedPassword == password) {
                         if (!req.session.username) {
                             req.session.username = username;
@@ -113,7 +132,8 @@ var getName = (connection, callback) => {
 
 var insertName = (connection, username, password, callback) => {
     var addSql = 'INSERT INTO user(username,password) VALUES(?,?)';
-    var addSqlParams = [username, password];
+    var processedPwd = aesEncrypt(password, pwdKey)
+    var addSqlParams = [username, processedPwd];
     connection.query(addSql, addSqlParams, function(err, result) {
         if (err) {
             console.log('[INSERT ERROR] - ', err.message);
