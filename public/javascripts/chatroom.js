@@ -240,6 +240,8 @@
 
  function removeUser(username) {
      console.log('remove!!!!')
+     histEncMsg.delete(username)
+     usersPubKey.delete(username)
      const x = document.getElementById('username')
      if (x != null) x.remove();
      location.reload();
