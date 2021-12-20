@@ -8,9 +8,7 @@ router.get('/', user.showLogin);
 /* GET users listing. */
 router.get('/sign', user.showSign);
 router.post('/logout', user.Logout);
-
 router.post('/do/sign', user.doSign);
-
 router.post('/users/do/log', user.doLog);
 
 module.exports = router;

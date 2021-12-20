@@ -2,8 +2,10 @@ var mysql = require('mysql');
 var wss = require('../app')
 const crypto = require('crypto');
 
+// key for aesEncrypt in password archiving
 const pwdKey = 'Password!'
 
+// for aesEncryption function
 function aesEncrypt(data, key) {
     const cipher = crypto.createCipher('aes192', key);
     var crypted = cipher.update(data, 'utf8', 'hex');
@@ -17,13 +19,14 @@ function aesDecrypt(encrypted, key) {
     decrypted += decipher.final('utf8');
     return decrypted;
 }
+// connection pool for mysql
 var pool = mysql.createPool({
     host: '47.93.96.71',
     user: 'BxlContact',
     password: '123456',
     database: 'bxlcontact'
 });
-
+// rewrite the hashCode method of String
 String.prototype.hashCode = function() {
     if (Array.prototype.reduce) {
         return this.split("").reduce(function(a, b) {
@@ -41,10 +44,12 @@ String.prototype.hashCode = function() {
     return hash;
 }
 
+// render the sign page
 exports.showSign = function(req, res) {
     res.render('user/sign');
 }
 
+// handler for sign in
 exports.doSign = function(req, res) {
     var username = req.body.username;
     var password = req.body.password;
@@ -63,9 +68,9 @@ exports.doSign = function(req, res) {
             })
         })
     });
-
 }
 
+// render the login page
 exports.showLogin = function(req, res) {
     if (req.session.username) {
         var username = req.session.username
@@ -73,11 +78,13 @@ exports.showLogin = function(req, res) {
             username: username
         })
     }
+    // implement the chanllenge response authentication
     var challengeCode = getVerCode()
     req.session.challengeCode = challengeCode
     res.render('index', { tips: 'Please Log in !', challengeCode: challengeCode })
 }
 
+// handler for login
 exports.doLog = function(req, res) {
     var username = req.body.username;
     var password = req.body.password;
@@ -86,8 +93,8 @@ exports.doLog = function(req, res) {
         getName(connection, (result) => {
             for (var i = 0; i < result.length; i++) {
                 if (result[i].username == username) {
+                    // get the true password from db
                     var Decrypt = aesDecrypt(result[i].password, pwdKey)
-                    console.log('期望的： ' + Decrypt)
                     var expectedPassword = (Decrypt + req.session.challengeCode).hashCode()
                     if (expectedPassword == password) {
                         if (!req.session.username) {
@@ -96,6 +103,7 @@ exports.doLog = function(req, res) {
                         res.render('user/chatroom', { username: username })
                         return
                     } else {
+                        // if wrong, restart the challenge response authentication
                         var challengeCode = getVerCode()
                         req.session.challengeCode = challengeCode
                         res.render('index', { tips: 'Wrong Password !', challengeCode: challengeCode })
@@ -103,6 +111,7 @@ exports.doLog = function(req, res) {
                     }
                 }
             }
+            // if wrong, restart the challenge response authentication
             var challengeCode = getVerCode()
             req.session.challengeCode = challengeCode
             res.render('index', { tips: 'Wrong Username !', challengeCode: challengeCode })
@@ -110,7 +119,7 @@ exports.doLog = function(req, res) {
     })
 }
 
-
+// handler for logout
 exports.Logout = function(req, res) {
     var username = req.session.username
     req.session.destroy();
@@ -118,6 +127,7 @@ exports.Logout = function(req, res) {
     res.redirect('/')
 }
 
+// get user information from db
 var getName = (connection, callback) => {
     var getNameSql = 'SELECT * FROM `user`';
     connection.query(getNameSql, function(err, result) {
@@ -130,6 +140,7 @@ var getName = (connection, callback) => {
     });
 }
 
+// insert user information from db
 var insertName = (connection, username, password, callback) => {
     var addSql = 'INSERT INTO user(username,password) VALUES(?,?)';
     var processedPwd = aesEncrypt(password, pwdKey)
@@ -149,6 +160,7 @@ var insertName = (connection, username, password, callback) => {
     });
 }
 
+// random generate code for challenge response authentication
 const getVerCode = () => {
     let verCode = Math.floor((Math.random() * 1000000) + 1);
     if (verCode < 100000) {

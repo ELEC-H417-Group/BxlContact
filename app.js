@@ -1,37 +1,28 @@
-const WebSocket = require('ws')
+var WebSocket = require('ws')
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var session = require('express-session');
 var logger = require('morgan');
 var crypto = require("crypto");
+var indexRouter = require('./routes/index');
 
-// connect to mysql
-var mysql = require('mysql');
-var pool = mysql.createPool({
-    host: '47.93.96.71',
-    user: 'BxlContact',
-    password: '123456',
-    database: 'bxlcontact'
-});
-
+// for secret encryption: DH algorithm
 // the prime will be share to everyone                                              
 var serverKey = crypto.createDiffieHellman(512);
 var prime = serverKey.getPrime();
 var generator = serverKey.getGenerator()
 
-
-var indexRouter = require('./routes/index');
-
+// Page changes are hosted by express
 var app = express();
-
+// Use session to keep the user logged in
 app.use(session({
     secret: '@BXLBXLBXL@',
     key: 'express_chapter6',
     saveUninitialized: false,
 }));
 
-const server = app.listen(9876)
+const server = app.listen(9876) // could be changed to your port
 const wss = new WebSocket.Server({
     server
 })
@@ -43,6 +34,15 @@ const usersName = new Map()
 // HashMap: {key: userName, value: pubKey}
 const usersPubKey = new Map()
 
+// connect to mysql server
+var mysql = require('mysql');
+var pool = mysql.createPool({
+    host: '47.93.96.71', // Can be changed to your own server
+    user: 'BxlContact',
+    password: '123456',
+    database: 'bxlcontact'
+});
+// the websocket server
 wss.on('connection', function connection(ws) {
     ws.on('message', function message(msg) {
         wss.clients.forEach(function each(client) {
@@ -56,19 +56,19 @@ wss.on('connection', function connection(ws) {
 
 function check(client, data) {
     switch (data.type) {
-        case 'users':
+        case 'users': // send online user message to all client
             sendAllUsers(client, data)
             break
-        case 'pubKey':
+        case 'pubKey': // send  user public key to all client
             broadcastNewPubKey(data)
             break
-        case 'message':
+        case 'message': // handler for message passing
             sendMessageTo(data)
             break
-        case 'encryptedMessage':
+        case 'encryptedMessage': // handler for encrypted message passing (secret mode)
             sendEncryptMsg(data)
             break
-        case 'getHistory':
+        case 'getHistory': // send history message to client
             sendHisResponse(data)
             break
         default:
@@ -76,9 +76,7 @@ function check(client, data) {
     }
 }
 
-
 const sendHisResponse = (data) => {
-
     pool.getConnection((err, connection) => {
         getHis(connection, data.from, data.to, (result) => {
             var sortedResult = result.sort((a, b) => a.time > b.time ? 1 : -1)
@@ -93,7 +91,7 @@ const sendHisResponse = (data) => {
     })
 }
 
-
+// get history message from mysql db
 var getHis = (connection, from, to, callback) => {
     var getHisSql = 'SELECT * FROM `content` WHERE (`from` = ? AND `to` = ?) OR (`from` = ? AND `to` = ?)';
     var params = [from, to, to, from]
@@ -123,6 +121,7 @@ function sendAllUsers(client, data) {
     broadcast(data.userName)
 }
 
+// handler for sending encrypted message
 function sendEncryptMsg(data) {
     var ws = usersName.get(data.sendToUser)
     if (ws == undefined) {
@@ -137,6 +136,7 @@ function sendEncryptMsg(data) {
     }
 }
 
+// broadcast the new public key to all users
 function broadcastNewPubKey(data) {
     usersPubKey.set(data.userName, data.clientKey)
     console.log('USERS PUBLIC KEY')
@@ -155,6 +155,7 @@ function broadcastNewPubKey(data) {
     }
 }
 
+// exports the logout procedure for user controller
 exports.logoutUser = (username) => {
     usersName.delete(username)
     usersPubKey.delete(username)
@@ -214,7 +215,7 @@ function broadcast(userName) {
     }
 }
 
-
+// for insert chat content to mysql db
 var insertChat = (connection, from, to, content, callback) => {
     var addSql = 'INSERT INTO `content`(`from`,`to`,`content`,`time`) VALUES(?,?,?,?)';
     var time = new Date();

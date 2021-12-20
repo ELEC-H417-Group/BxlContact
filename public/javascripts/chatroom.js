@@ -1,15 +1,9 @@
- // put in the remote server, need to be changed
+ // websocket client service on
  serverUrl = 'ws://localhost:9876/server'
  const websocket = new WebSocket(serverUrl)
 
+ // Libary and Function wrapper for encryption
  const crypto = require('crypto');
- var Buffer = require('buffer').Buffer;
-
- const inputMessage = document.getElementById('message')
- const sendButton = document.getElementById('chat-message-submit')
- const dest = document.getElementById('dest')
- const modeBtn = document.getElementById('modeBtn')
-
 
  function aesEncrypt(data, key) {
      const cipher = crypto.createCipher('aes192', key);
@@ -42,47 +36,34 @@
      return hash;
  }
 
- var mainUser = {
-     userName: dest.getAttribute('data-value'),
- }
+ // some html labels binding
+ const inputMessage = document.getElementById('message')
+ const sendButton = document.getElementById('chat-message-submit')
+ const dest = document.getElementById('dest')
+ const modeBtn = document.getElementById('modeBtn')
 
- //send to me by default
- var sendTo_ = mainUser.userName
+ var prime = undefined // parameter for DH encryption
+ var generator = undefined // function for DH encryption
+ var client = undefined // parameter for DH encryption
+ var clientKey = undefined // secret key from DH encryption
+ var usersPubKey = new Map() // the secret key hashMap
+ var oldMessage = undefined // cache for secret message 
+ var OnlineList = [] // online user list
+ var histEncMsg = new Map() // cache map for secret message 
+ var secretMode = false // global boolean value for secret mode
 
- var prime = undefined
- var generator = undefined
- var client = undefined
- var clientKey = undefined
- var usersPubKey = new Map()
- var oldMessage = undefined
-
- var OnlineList = []
-
- var histEncMsg = new Map()
-
- sendButton.addEventListener('click', sendEvent, false);
-
-
- // for the function secret 
-
- // Update according to the information from the server
- var secretMode = false
-
+ // action for mode changing
  const changeMode = () => {
      if (modeBtn.value == 'Open Secret Mode') {
          alert('On Secret Mode, the server may not store the message you send, which means no history message can be seen.')
          modeBtn.value = 'Close Secret Mode'
          secretMode = true
-
      } else {
          modeBtn.value = 'Open Secret Mode'
          secretMode = false
      }
  }
-
  modeBtn.addEventListener('click', changeMode, false)
-
-
 
  //on websocket open
  websocket.onopen = function() {
@@ -91,43 +72,44 @@
          userName: mainUser.userName,
      }
      websocket.send(JSON.stringify(data))
-     console.log('connected')
-
      messageAdd('<div class="message green">You have entered the chat room. Please select a online user to chat!</div>')
  }
 
- //on message receive
+ // the user: myself
+ var mainUser = {
+         userName: dest.getAttribute('data-value'),
+     }
+     // this global variable will be changed if ones click the user button in user list
+     //send to me by default
+ var sendTo_ = mainUser.userName
+
+ //on message receive from websocket server
  websocket.onmessage = function(event) {
      try {
          var data = JSON.parse(event.data)
          switch (data.type) {
-             //get existing users with their keys
-             case 'users':
+             case 'users': //get existing users with their keys
                  getUsers(data)
                  sendHistRequest(mainUser.userName, mainUser.userName)
                  sendPubKey()
                  addPubKeys(data)
                  break
-                 //get message receive
-             case 'message':
+             case 'message': //get message receive
                  messageOperation(data)
                  break
-             case 'encryptedMessage':
+             case 'encryptedMessage': //receive the encrypted message
                  decrypMessage(data)
                  break
-                 //add new user
-             case 'newUser':
+             case 'newUser': //add new user
                  addContact(data.userName)
                  break
-             case 'newPubKey':
-                 console.log('new PubKey!!')
-                 console.log(data)
+             case 'newPubKey': //add public key for secret mode
                  addPubKey(data.userName, data.pubKey)
                  break
-             case 'logout':
+             case 'logout': //receive message that shows one user have loged out
                  removeUser(data.username)
                  break
-             case 'getHistory':
+             case 'getHistory': //receive history message with another user
                  if (data.content.length >= 1) {
                      resolveHis(data.content)
                      resolveEncHis(data.to)
@@ -155,7 +137,7 @@
      messageAdd('<div class="message red">Connection to chat failed.</div>');
  }
 
- // handle the message receiving
+ // handle the chat message receiving
  const messageOperation = (data) => {
      if (data.userName == sendTo_) {
          var key = data.userName.hashCode() + mainUser.userName.hashCode()
@@ -174,9 +156,7 @@
              messageAdd('<div class="message">' + '(secure mode) ' + data.userName + ': ' + oldMessage + '</div>');
              return
          } else {
-             console.log('DECRYPTION')
              secretKey = usersPubKey.get(data.userName)
-             console.log(secretKey)
              var x = secretKey.buffer
              var decr = aesDecrypt(data.message, x);
              messageAdd('<div class="message">' + '(secure mode) ' + data.userName + ': ' + decr + '</div>');
@@ -184,7 +164,6 @@
          }
      } else {
          secretKey = usersPubKey.get(data.userName)
-         console.log(secretKey)
          var x = secretKey.buffer
          var decr = aesDecrypt(data.message, x);
          var contactButton = document.getElementById(data.userName)
@@ -194,6 +173,7 @@
 
  }
 
+ // to add user button in user list
  function getUsers(data) {
      sendTo_ = data.userName
      prime = data.prime
@@ -206,14 +186,11 @@
 
  //Send a message to 'sendTo' when clicking on the button send
  function sendEvent() {
-
      var message = inputMessage.value;
      inputMessage.value = ' '
-
-     //encrypted mode
+         //encrypted mode
      if (secretMode) {
          secretKey = usersPubKey.get(sendTo_)
-         console.log(usersPubKey)
          oldMessage = message
          var data = {
              type: 'encryptedMessage',
@@ -228,10 +205,9 @@
          } else {
              websocket.send(JSON.stringify(data))
          }
-
          message.value = ""
      }
-     //no encrypted mode
+     // normal chating mode
      else {
          var key = sendTo_.hashCode() + mainUser.userName.hashCode()
          var encrypt = aesEncrypt(message, key + '')
@@ -247,11 +223,13 @@
          } else {
              websocket.send(JSON.stringify(data))
          }
-
          message.value = ""
      }
  }
+ sendButton.addEventListener('click', sendEvent, false);
 
+
+ // cache operation
  function putHist(mainUser, sender, message) {
      listHis = histEncMsg.get(mainUser)
      if (listHis == undefined) {
@@ -264,9 +242,8 @@
      }
  }
 
-
+ // if one user log out, remove the user from user list
  function removeUser(username) {
-     console.log('remove!!!!')
      histEncMsg.delete(username)
      usersPubKey.delete(username)
      const x = document.getElementById('username')
@@ -274,13 +251,14 @@
      location.reload();
  }
 
+ // add new message on window
  function messageAdd(message) {
      var chatMessage = document.getElementById('chat-message');
      chatMessage.insertAdjacentHTML("beforeend", message);
  }
 
+ // add new user in user buttons
  function addContacts(users) {
-
      for (const [key, value] of users.entries()) {
          if (key != mainUser.userName) {
              addContact(key, value)
@@ -314,6 +292,7 @@
      }, false)
  }
 
+ // send the public key to server, for secret mode
  function sendPubKey() {
      client = crypto.createDiffieHellman(prime, generator)
      clientKey = client.generateKeys()
@@ -326,34 +305,24 @@
      websocket.send(JSON.stringify(data))
  }
 
+ // receive public key from server, add it to list
  function addPubKeys(data) {
      var pubKeys = JSON.parse(data.usersPubKey, reviver)
-     console.log('ADD PUB KEYS')
-     console.log(pubKeys)
      for (const [key, value] of pubKeys.entries()) {
          if (key != mainUser.userName) {
-             console.log('TRY TO ADD')
-             console.log(key)
-             console.log(value)
              addPubKey(key, value)
-
-             console.log('KEY ADDED')
-
          }
      }
  }
 
  function addPubKey(userName, pubKey) {
      secretKey = client.computeSecret(pubKey.data)
-
-     console.log("SECRET KEY: " + secretKey)
      usersPubKey.set(userName, secretKey)
  }
 
  // put History message to <div>
  const resolveHis = (result) => {
      var contentList = []
-     console.log(typeof result[0].from)
      var key = result[0].from.hashCode() + result[0].to.hashCode()
      for (var i = 0; i < result.length; i++) {
          result[i].content = aesDecrypt(result[i].content, key + '')
@@ -369,6 +338,7 @@
      messageAdd(output);
  }
 
+ // resolve the secret message to window
  function resolveEncHis(to) {
      var contentList = []
      var listHis = histEncMsg.get(to)
