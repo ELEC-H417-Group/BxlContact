@@ -41,6 +41,8 @@
 
  var OnlineList = []
 
+ var histEncMsg = new Map()
+
  sendButton.addEventListener('click', sendEvent, false);
 
 
@@ -110,6 +112,7 @@
                  break
              case 'getHistory':
                  resolveHis(data.content)
+                 resolveEncHis(data.to)
                  break
              default:
                  console.log(`Wrong expression`)
@@ -145,6 +148,7 @@
      if (data.userName == sendTo_) {
          if (mainUser.userName == data.userName) {
              messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + oldMessage + '</div>');
+             return 
          } else {
              console.log('DECRYPTION')
              secretKey = usersPubKey.get(data.userName)
@@ -152,11 +156,18 @@
              var x = secretKey.buffer
              var decr = aesDecrypt(data.message, x);
              messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + decr + '</div>');
+             putHist(data.userName,data.userName,decr)
          }
      } else {
-         var contactButton = document.getElementById(data.userName)
-         contactButton.innerHTML = data.userName + ' (new encrypt message!)'
+        secretKey = usersPubKey.get(data.userName)
+        console.log(secretKey)
+        var x = secretKey.buffer
+        var decr = aesDecrypt(data.message, x);
+        var contactButton = document.getElementById(data.userName)
+        contactButton.innerHTML = data.userName + ' (new encrypt message!)'
+        putHist(data.userName,data.userName,decr)
      }
+     
  }
 
  function getUsers(data) {
@@ -186,6 +197,7 @@
              from: mainUser.userName,
              message: aesEncrypt(message, secretKey)
          }
+         putHist(sendTo_,mainUser.userName,oldMessage)
          if (sendTo_ != mainUser.userName) {
              messageAdd('<div class="message">' + '(secret mode) ' + mainUser.userName + ': ' + message + '</div>');
              websocket.send(JSON.stringify(data))
@@ -212,6 +224,17 @@
 
          message.value = ""
      }
+ }
+
+ function putHist(mainUser,sender,message){
+    listHis = histEncMsg.get(mainUser)
+    if(listHis == undefined){
+        histEncMsg.set(mainUser, [[sender,message]])
+    }
+    else{
+        listHis.push([sender,message])
+        histEncMsg.set(mainUser,listHis)
+    }
  }
 
 
@@ -256,9 +279,6 @@
      var contactButton = document.getElementById(userName)
      contactButton.addEventListener('click', function() {
          sendHistRequest(mainUser.userName, userName)
-         if (secretMode) {
-             // do the dh procedure, exchange the key, save the key in local
-         }
          this.innerHTML = userName
          dest.innerHTML = userName
          sendTo_ = userName
@@ -313,6 +333,21 @@
      var box = document.getElementById("chat-message");
      removeAllChild(box)
      messageAdd(output);
+ }
+
+ function resolveEncHis(to){
+    var contentList = []
+    var listHis = histEncMsg.get(to)
+    if (listHis == undefined){
+        return
+    }
+    for(var i = 0;i < listHis.length;i++){
+        contentList.push('<div class="message">' + '(secret mode) '+ listHis[i][0] + ': ' + listHis[i][1] + '</div>')
+    }
+    const temp = contentList.toString()
+    var reg = new RegExp(/,/, "g")
+    var output = temp.replace(reg, ' ')
+    messageAdd(output);
  }
 
  function removeAllChild(node) {

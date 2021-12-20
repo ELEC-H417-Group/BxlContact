@@ -92,6 +92,7 @@ const sendHisResponse = (data) => {
             var dataHis = {
                 type: 'getHistory',
                 content: sortedResult,
+                to:data.to
             }
             client.send(JSON.stringify(dataHis))
         })
