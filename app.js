@@ -219,7 +219,6 @@ var insertChat = (connection, from, to, content, callback) => {
     var addSql = 'INSERT INTO `content`(`from`,`to`,`content`,`time`) VALUES(?,?,?,?)';
     var time = new Date();
     var addSqlParams = [from, to, content, time];
-    console.log('出现了！' + addSqlParams)
     connection.query(addSql, addSqlParams, function(err, result) {
         if (err) {
             console.log('[INSERT ERROR] - ', err.message);

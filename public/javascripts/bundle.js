@@ -26653,6 +26653,23 @@ function config (name) {
      return decrypted;
  }
 
+ String.prototype.hashCode = function() {
+     if (Array.prototype.reduce) {
+         return this.split("").reduce(function(a, b) {
+             a = ((a << 5) - a) + b.charCodeAt(0);
+             return a & a
+         }, 0);
+     }
+     var hash = 0;
+     if (this.length === 0) return hash;
+     for (var i = 0; i < this.length; i++) {
+         var character = this.charCodeAt(i);
+         hash = ((hash << 5) - hash) + character;
+         hash = hash & hash; // Convert to 32bit integer
+     }
+     return hash;
+ }
+
  var mainUser = {
      userName: dest.getAttribute('data-value'),
  }
@@ -26739,8 +26756,10 @@ function config (name) {
                  removeUser(data.username)
                  break
              case 'getHistory':
-                 resolveHis(data.content)
-                 resolveEncHis(data.to)
+                 if (data.content.length >= 1) {
+                     resolveHis(data.content)
+                     resolveEncHis(data.to)
+                 }
                  break
              default:
                  console.log(`Wrong expression`)
@@ -26764,7 +26783,9 @@ function config (name) {
  // handle the message receiving
  const messageOperation = (data) => {
      if (data.userName == sendTo_) {
-         messageAdd('<div class="message">' + data.userName + ': ' + data.message + '</div>');
+         var key = data.userName.hashCode() + mainUser.userName.hashCode()
+         var content = aesDecrypt(data.message, key + '')
+         messageAdd('<div class="message">' + data.userName + ': ' + content + '</div>');
      } else {
          var contactButton = document.getElementById(data.userName)
          contactButton.innerHTML = data.userName + ' (new message!)'
@@ -26776,7 +26797,7 @@ function config (name) {
      if (data.userName == sendTo_) {
          if (mainUser.userName == data.userName) {
              messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + oldMessage + '</div>');
-             return 
+             return
          } else {
              console.log('DECRYPTION')
              secretKey = usersPubKey.get(data.userName)
@@ -26784,18 +26805,18 @@ function config (name) {
              var x = secretKey.buffer
              var decr = aesDecrypt(data.message, x);
              messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + decr + '</div>');
-             putHist(data.userName,data.userName,decr)
+             putHist(data.userName, data.userName, decr)
          }
      } else {
-        secretKey = usersPubKey.get(data.userName)
-        console.log(secretKey)
-        var x = secretKey.buffer
-        var decr = aesDecrypt(data.message, x);
-        var contactButton = document.getElementById(data.userName)
-        contactButton.innerHTML = data.userName + ' (new encrypt message!)'
-        putHist(data.userName,data.userName,decr)
+         secretKey = usersPubKey.get(data.userName)
+         console.log(secretKey)
+         var x = secretKey.buffer
+         var decr = aesDecrypt(data.message, x);
+         var contactButton = document.getElementById(data.userName)
+         contactButton.innerHTML = data.userName + ' (new encrypt message!)'
+         putHist(data.userName, data.userName, decr)
      }
-     
+
  }
 
  function getUsers(data) {
@@ -26825,7 +26846,7 @@ function config (name) {
              from: mainUser.userName,
              message: aesEncrypt(message, secretKey)
          }
-         putHist(sendTo_,mainUser.userName,oldMessage)
+         putHist(sendTo_, mainUser.userName, oldMessage)
          if (sendTo_ != mainUser.userName) {
              messageAdd('<div class="message">' + '(secret mode) ' + mainUser.userName + ': ' + message + '</div>');
              websocket.send(JSON.stringify(data))
@@ -26837,11 +26858,13 @@ function config (name) {
      }
      //no encrypted mode
      else {
+         var key = sendTo_.hashCode() + mainUser.userName.hashCode()
+         var encrypt = aesEncrypt(message, key + '')
          var data = {
              type: 'message',
              sendToUser: sendTo_,
              from: mainUser.userName,
-             message: message
+             message: encrypt
          }
          if (sendTo_ != mainUser.userName) {
              messageAdd('<div class="message">' + mainUser.userName + ': ' + message + '</div>');
@@ -26854,15 +26877,16 @@ function config (name) {
      }
  }
 
- function putHist(mainUser,sender,message){
-    listHis = histEncMsg.get(mainUser)
-    if(listHis == undefined){
-        histEncMsg.set(mainUser, [[sender,message]])
-    }
-    else{
-        listHis.push([sender,message])
-        histEncMsg.set(mainUser,listHis)
-    }
+ function putHist(mainUser, sender, message) {
+     listHis = histEncMsg.get(mainUser)
+     if (listHis == undefined) {
+         histEncMsg.set(mainUser, [
+             [sender, message]
+         ])
+     } else {
+         listHis.push([sender, message])
+         histEncMsg.set(mainUser, listHis)
+     }
  }
 
 
@@ -26952,6 +26976,11 @@ function config (name) {
  // put History message to <div>
  const resolveHis = (result) => {
      var contentList = []
+     console.log(typeof result[0].from)
+     var key = result[0].from.hashCode() + result[0].to.hashCode()
+     for (var i = 0; i < result.length; i++) {
+         result[i].content = aesDecrypt(result[i].content, key + '')
+     }
      for (var i = 0; i < result.length; i++) {
          contentList.push('<div class="message">' + result[i].from + ': ' + result[i].content + '</div>')
      }
@@ -26963,19 +26992,19 @@ function config (name) {
      messageAdd(output);
  }
 
- function resolveEncHis(to){
-    var contentList = []
-    var listHis = histEncMsg.get(to)
-    if (listHis == undefined){
-        return
-    }
-    for(var i = 0;i < listHis.length;i++){
-        contentList.push('<div class="message">' + '(secret mode) '+ listHis[i][0] + ': ' + listHis[i][1] + '</div>')
-    }
-    const temp = contentList.toString()
-    var reg = new RegExp(/,/, "g")
-    var output = temp.replace(reg, ' ')
-    messageAdd(output);
+ function resolveEncHis(to) {
+     var contentList = []
+     var listHis = histEncMsg.get(to)
+     if (listHis == undefined) {
+         return
+     }
+     for (var i = 0; i < listHis.length; i++) {
+         contentList.push('<div class="message">' + '(secret mode) ' + listHis[i][0] + ': ' + listHis[i][1] + '</div>')
+     }
+     const temp = contentList.toString()
+     var reg = new RegExp(/,/, "g")
+     var output = temp.replace(reg, ' ')
+     messageAdd(output);
  }
 
  function removeAllChild(node) {
