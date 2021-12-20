@@ -26759,6 +26759,9 @@ function config (name) {
                  if (data.content.length >= 1) {
                      resolveHis(data.content)
                      resolveEncHis(data.to)
+                 } else {
+                     var box = document.getElementById("chat-message");
+                     removeAllChild(box)
                  }
                  break
              default:
@@ -26796,7 +26799,7 @@ function config (name) {
  function decrypMessage(data) {
      if (data.userName == sendTo_) {
          if (mainUser.userName == data.userName) {
-             messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + oldMessage + '</div>');
+             messageAdd('<div class="message">' + '(secure mode) ' + data.userName + ': ' + oldMessage + '</div>');
              return
          } else {
              console.log('DECRYPTION')
@@ -26804,7 +26807,7 @@ function config (name) {
              console.log(secretKey)
              var x = secretKey.buffer
              var decr = aesDecrypt(data.message, x);
-             messageAdd('<div class="message">' + '(in secure mode) ' + data.userName + ': ' + decr + '</div>');
+             messageAdd('<div class="message">' + '(secure mode) ' + data.userName + ': ' + decr + '</div>');
              putHist(data.userName, data.userName, decr)
          }
      } else {
@@ -26892,6 +26895,8 @@ function config (name) {
 
  function removeUser(username) {
      console.log('remove!!!!')
+     histEncMsg.delete(username)
+     usersPubKey.delete(username)
      const x = document.getElementById('username')
      if (x != null) x.remove();
      location.reload();
