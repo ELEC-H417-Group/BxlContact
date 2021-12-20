@@ -20,12 +20,6 @@ var serverKey = crypto.createDiffieHellman(512);
 var prime = serverKey.getPrime();
 var generator = serverKey.getGenerator()
 
-console.log('PRIME NUMBER')
-console.log(prime)
-
-
-
-
 
 var indexRouter = require('./routes/index');
 
@@ -92,7 +86,7 @@ const sendHisResponse = (data) => {
             var dataHis = {
                 type: 'getHistory',
                 content: sortedResult,
-                to:data.to
+                to: data.to
             }
             client.send(JSON.stringify(dataHis))
         })

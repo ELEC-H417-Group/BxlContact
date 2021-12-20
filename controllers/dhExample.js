@@ -42,7 +42,7 @@ console.log('Secret of Xiao Hong: ' + bob_secret.toString('hex'));
 
 console.log(alice_secret.t)
 console.log(alice_secret)
-var data = 'Hello, this is a secret message!';
+var data = 'H!';
 var encrypted = aesEncrypt(data, alice_secret);
 var decrypted = aesDecrypt(encrypted, alice_secret);
 
