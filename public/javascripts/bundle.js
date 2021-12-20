@@ -26874,9 +26874,13 @@ function config (name) {
  function removeUser(username) {
      histEncMsg.delete(username)
      usersPubKey.delete(username)
-     const x = document.getElementById('username')
-     if (x != null) x.remove();
-     location.reload();
+     const contact = document.getElementById('contactDad')
+     const x = document.getElementById(username)
+     contact.removeChild(x)
+     sendHistRequest(mainUser.userName, mainUser.userName)
+     this.innerHTML = mainUser.userName
+     dest.innerHTML = mainUser.userName
+     sendTo_ = mainUser.userName
  }
 
  // add new message on window
@@ -26945,8 +26949,6 @@ function config (name) {
 
  function addPubKey(userName, pubKey) {
      secretKey = client.computeSecret(pubKey.data)
-
-     console.log("SECRET KEY: " + secretKey)
      usersPubKey.set(userName, secretKey)
  }
 

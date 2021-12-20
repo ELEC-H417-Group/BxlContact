@@ -77,6 +77,7 @@ exports.showLogin = function(req, res) {
         res.render('user/chatroom', {
             username: username
         })
+        return
     }
     // implement the chanllenge response authentication
     var challengeCode = getVerCode()
@@ -86,6 +87,13 @@ exports.showLogin = function(req, res) {
 
 // handler for login
 exports.doLog = function(req, res) {
+    if (req.session.username) {
+        var username = req.session.username
+        res.render('user/chatroom', {
+            username: username
+        })
+        return
+    }
     var username = req.body.username;
     var password = req.body.password;
     // check data in database
@@ -117,6 +125,22 @@ exports.doLog = function(req, res) {
             res.render('index', { tips: 'Wrong Username !', challengeCode: challengeCode })
         })
     })
+}
+
+// get method( fix bugs )
+exports.getDoLog = function(req, res) {
+    if (req.session.username) {
+        var username = req.session.username
+        res.render('user/chatroom', {
+            username: username
+        })
+        return
+    } else {
+        // implement the chanllenge response authentication
+        var challengeCode = getVerCode()
+        req.session.challengeCode = challengeCode
+        res.render('index', { tips: 'Please Log in !', challengeCode: challengeCode })
+    }
 }
 
 // handler for logout
