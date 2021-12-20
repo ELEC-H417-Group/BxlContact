@@ -131,6 +131,9 @@
                  if (data.content.length >= 1) {
                      resolveHis(data.content)
                      resolveEncHis(data.to)
+                 } else {
+                     var box = document.getElementById("chat-message");
+                     removeAllChild(box)
                  }
                  break
              default:
