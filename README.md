@@ -84,3 +84,8 @@ CREATE TABLE `bxlcontact`.`content`(
 ) ENGINE=MYISAM CHARSET=utf8 COLLATE=utf8_general_ci;  
 
 ```
+
+
+## Video Instruction
+
+[![Watch the video](https://raw.githubusercontent.com/ELEC-H417-Group/BxlContact/main/public/images/video.png)](https://www.youtube.com/watch?v=x-xJ9w3VdyA)
