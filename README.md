@@ -1,6 +1,6 @@
 ## BxlContact
 
-<img src="https://raw.githubusercontent.com/ELEC-H417-Group/BxlContact/main/public/images/logo.png" width="200" >
+<img src="https://raw.githubusercontent.com/ELEC-H417-Group/BxlContact/main/public/images/logo2.png" width="300" >
 
 [BxlContact](http://chat.yiywang.tech) chat software is a web chat tool based on [nodejs](https://nodejs.org/)+[express](https://expressjs.com/)+[websocket](https://www.npmjs.com/package/websocket) module.   
 The front end uses ejs as the template engine. The server uses express to build a web service, and ws to create a server websocket service, which realizes the functions of login and registration, one-to-one chat and private chat (end-to-end encryption).
@@ -49,6 +49,12 @@ If the server run successfully, you can enter the following address in your brow
 ``` 
 http://localhost:3000/
 ```   
+
+
+<img src="https://raw.githubusercontent.com/ELEC-H417-Group/BxlContact/main/public/images/fig1.png" width="300" >
+
+<img src="https://raw.githubusercontent.com/ELEC-H417-Group/BxlContact/main/public/images/fig2.png" width="300" >
+
 
 ## Cannot Start the Server? 
 
