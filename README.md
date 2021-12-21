@@ -1,6 +1,6 @@
 ## BxlContact
 
-<img src="https://raw.githubusercontent.com/yiywang/BxlContact/main/public/images/logo.png" width="633" >
+<img src="https://raw.githubusercontent.com/yiywang/BxlContact/main/public/images/logo.png" width="200" >
 
 BxlContact chat software is a web chat room tool based on nodejs+express+websocket module. The front end uses ejs as the template engine. The server uses express to build a web service, and ws to create a server websocket service, which realizes the functions of login and registration, one-to-one chat and private chat (end-to-end encryption).
 
